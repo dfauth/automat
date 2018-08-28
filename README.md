@@ -1,5 +1,7 @@
 # lagom-jwt-authentication
 
+lifted from https://github.com/dpalinic/lagom-jwt-authentication
+
 Example project to integrate Lagom framework with JWT authentication.
 
 Actions:
