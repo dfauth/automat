@@ -27,6 +27,48 @@ object Given {
 
 }
 
+object handlers extends Logging {
+
+  def asFilter(preHandler: FilterableRequestSpecification => FilterableRequestSpecification = r => r, postHandlers: Map[Int, RequestSpecification => Response] = Map.empty):Filter = {
+    new ThingyFilter(preHandler, postHandlers)
+  }
+
+  def storeToken(): Response => Response = {
+    r => {
+      RequestContext.addToContext("authToken", r.body().jsonPath().getString("authToken"))
+      RequestContext.addToContext("refreshToken", r.body().jsonPath().getString("refreshToken"))
+      r
+    }
+  }
+  def authHandler(ctx:RequestContext.type ):FilterableRequestSpecification => FilterableRequestSpecification = {
+    r => {
+      //o => r.header("Authorization", "Bearer "+o)
+      ctx.get("authToken").foreach(o => r.header("Authorization", "Bearer "+o))
+      r
+    }
+  }
+
+  def loginHandler():RequestSpecification => Response = {
+    /**
+      * {
+	"username": "dpalinic",
+	"password": "test12345"
+}
+      */
+    val jsonString = "{\n\t\"username\": \"dpalinic\",\n\t\"password\": \"test12345\"\n}"
+    req => {
+      logger.info("fire loginHandler: "+jsonString)
+      val res = req.body(jsonString).post("http://localhost/api/user/login")
+      logger.info("res: "+res.statusCode())
+      res
+    }
+
+  }
+
+
+
+}
+
 object RequestContext {
 
   val map = mutable.Map[String, String]()
