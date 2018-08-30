@@ -1,19 +1,11 @@
 package thingy
 
-import java.{lang, util}
-import java.util.concurrent.TimeUnit
-
 import automat.Method
 import io.restassured.RestAssured
 import io.restassured.filter.{Filter, FilterContext}
-import io.restassured.function.RestAssuredFunction
-import io.restassured.http.ContentType
-import io.restassured.matcher.DetailedCookieMatcher
-import io.restassured.parsing.Parser
 import io.restassured.response.{Response, ResponseOptions}
 import io.restassured.specification._
 import org.apache.logging.log4j.scala.Logging
-import org.hamcrest.Matcher
 
 import scala.collection.mutable
 
@@ -42,16 +34,24 @@ object RequestContext {
   def addToContext(key:String, value:String) = {
     map.put(key, value)
   }
+
+  def get(key:String):Option[String] = {
+    map.get(key)
+  }
 }
 
-class ThingyFilter(handlers: Map[Int, RequestSpecification => Response]) extends Filter with Logging {
+class ThingyFilter(preHandler: FilterableRequestSpecification => FilterableRequestSpecification = r => r, postHandlers: Map[Int, RequestSpecification => Response] = Map.empty) extends Filter with Logging {
 
-  def handle(requestSpec: FilterableRequestSpecification, responseSpec: FilterableResponseSpecification, ctx: FilterContext, res: Response): Response = {
+  def preHandle(requestSpec: FilterableRequestSpecification): FilterableRequestSpecification = {
+    preHandler(requestSpec)
+  }
+
+  def postHandle(requestSpec: FilterableRequestSpecification, res: Response): Response = {
     val q = SpecificationQuerier.query(requestSpec)
     val uri = q.getURI
     val replayer = Method.valueOf(q.getMethod).replayer(q.getURI())
     logger.info("response: "+res.statusCode)
-    handlers.get(res.statusCode()).map(f => {
+    postHandlers.get(res.statusCode()).map(f => {
       f.andThen[Response](r => {
         logger.info("replay original request: "+requestSpec)
         replayer.replay(requestSpec)
@@ -60,8 +60,9 @@ class ThingyFilter(handlers: Map[Int, RequestSpecification => Response]) extends
   }
 
   override def filter(requestSpec: FilterableRequestSpecification, responseSpec: FilterableResponseSpecification, ctx: FilterContext): Response = {
-    val res = ctx.next(requestSpec, responseSpec)
-    handle(requestSpec, responseSpec, ctx, res)
+    val req = preHandle(requestSpec)
+    val res = ctx.next(req, responseSpec)
+    postHandle(req, res)
   }
 }
 
