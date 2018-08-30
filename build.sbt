@@ -5,7 +5,7 @@ organization in ThisBuild := "lagom-jwt-auth"
 version in ThisBuild := "1.0-SNAPSHOT"
 
 // the Scala version that will be used for cross-compiled libraries
-scalaVersion in ThisBuild := "2.12.6"
+scalaVersion in ThisBuild := "2.11.8"
 
 resolvers += "softprops-maven" at "http://dl.bintray.com/content/softprops/maven"
 
