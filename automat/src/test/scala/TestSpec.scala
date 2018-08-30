@@ -1,6 +1,6 @@
 import io.restassured.RestAssured.given
 import io.restassured.response.Response
-import io.restassured.specification.RequestSpecification
+import io.restassured.specification.{FilterableRequestSpecification, RequestSpecification}
 import org.apache.logging.log4j.scala.Logging
 import org.scalatest._
 import thingy.{Given, RequestContext, ThingyFilter}
@@ -25,16 +25,18 @@ class TestSpec extends FlatSpec with Matchers with Logging {
   }
 
   "Json serialization" should "work" in {
-      val g = given.filter(new ThingyFilter(preHandler = r => r,postHandlers = Map(403 -> loginHandler().andThen(storeToken()))))
+      val g = given.filter(new ThingyFilter(preHandler = authHandler(RequestContext),postHandlers = Map(403 -> loginHandler().andThen(storeToken()))))
 
       val res = g.when.port(9000).get("/api/state/identity")
 //        get("http://localhost:9000/api/state/identity").
 
       val res1 = res.then()
       res1.statusCode(200)
+      logger.info("body: "+res.body().prettyPrint())
+      res.body().jsonPath().get[String]("users[0].username") should be ("dpalinic")
     }
 
-  def authHandler(ctx:RequestContext.type ):RequestSpecification => RequestSpecification = {
+  def authHandler(ctx:RequestContext.type ):FilterableRequestSpecification => FilterableRequestSpecification = {
     r => {
       //o => r.header("Authorization", "Bearer "+o)
       ctx.get("authToken").foreach(o => r.header("Authorization", "Bearer "+o))
