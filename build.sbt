@@ -5,7 +5,7 @@ organization in ThisBuild := "lagom-jwt-auth"
 version in ThisBuild := "1.0-SNAPSHOT"
 
 // the Scala version that will be used for cross-compiled libraries
-scalaVersion in ThisBuild := "2.11.8"
+scalaVersion in ThisBuild := "2.12.6"
 
 resolvers += "softprops-maven" at "http://dl.bintray.com/content/softprops/maven"
 
@@ -60,7 +60,8 @@ lazy val `automat` = (project in file("automat"))
       scalaTest,
       "org.apache.logging.log4j" % "log4j-api" % "2.11.0",
       "org.apache.logging.log4j" % "log4j-core" % "2.11.0",
-      "org.apache.logging.log4j" %% "log4j-api-scala" % "11.0"
+      "org.apache.logging.log4j" %% "log4j-api-scala" % "11.0",
+      "org.testng" % "testng" % "6.10"
     )
   )
 
