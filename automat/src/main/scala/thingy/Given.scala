@@ -1,6 +1,6 @@
 package thingy
 
-import automat.Method
+import automat.{Identity, Method}
 import io.restassured.RestAssured
 import io.restassured.filter.{Filter, FilterContext}
 import io.restassured.response.{Response, ResponseOptions}
@@ -25,6 +25,10 @@ object Given {
 
   def given() = this
 
+  def use(id:Identity): TestContext = {
+    new TestContext(id)
+  }
+
 }
 
 object handlers extends Logging {
@@ -33,14 +37,14 @@ object handlers extends Logging {
     new ThingyFilter(preHandler, postHandlers)
   }
 
-  def storeToken(): Response => Response = {
+  def storeToken(ctx:TestContext): Response => Response = {
     r => {
-      RequestContext.addToContext("authToken", r.body().jsonPath().getString("authToken"))
-      RequestContext.addToContext("refreshToken", r.body().jsonPath().getString("refreshToken"))
+      ctx.addToContext("authToken", r.body().jsonPath().getString("authToken"))
+      ctx.addToContext("refreshToken", r.body().jsonPath().getString("refreshToken"))
       r
     }
   }
-  def authHandler(ctx:RequestContext.type ):FilterableRequestSpecification => FilterableRequestSpecification = {
+  def authHandler(ctx:TestContext ):FilterableRequestSpecification => FilterableRequestSpecification = {
     r => {
       //o => r.header("Authorization", "Bearer "+o)
       ctx.get("authToken").foreach(o => r.header("Authorization", "Bearer "+o))
@@ -48,18 +52,13 @@ object handlers extends Logging {
     }
   }
 
-  def loginHandler():RequestSpecification => Response = {
-    /**
-      * {
-	"username": "dpalinic",
-	"password": "test12345"
-}
-      */
-    val jsonString = "{\n\t\"username\": \"dpalinic\",\n\t\"password\": \"test12345\"\n}"
+  def loginHandler(ctx:TestContext):RequestSpecification => Response = {
+    val jsonString = "{\n\t\"username\": \""+ctx.get("username").get+"\",\n\t\"password\": \""+ctx.get("password").get+"\"\n}"
     req => {
       logger.info("fire loginHandler: "+jsonString)
       val res = req.body(jsonString).post("http://localhost/api/user/login")
       logger.info("res: "+res.statusCode())
+      req.then().statusCode(200)
       res
     }
 
@@ -69,9 +68,9 @@ object handlers extends Logging {
 
 }
 
-object RequestContext {
+class TestContext(id:Identity) {
 
-  val map = mutable.Map[String, String]()
+  val map = mutable.Map[String, String]("username"->id.getUsername(), "password" -> id.getPassword())
 
   def addToContext(key:String, value:String) = {
     map.put(key, value)

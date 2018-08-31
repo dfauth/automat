@@ -1,20 +1,22 @@
+import automat.Identity
 import io.restassured.RestAssured.given
 import org.apache.logging.log4j.scala.Logging
 import org.hamcrest.Matchers.is
 import org.scalatest._
 import thingy.handlers.{asFilter, authHandler, loginHandler, storeToken}
-import thingy.{RequestContext, ThingyFilter}
+import thingy.{TestContext, ThingyFilter}
+import thingy.Given.use
 
 class TestSpec extends FlatSpec with Matchers with Logging {
 
   "create an account" should "work" in {
     val jsonString = "{" +
-      "    \"company\": \"Digital Cat\"," +
-      "    \"firstName\": \"Damir\"," +
-      "    \"lastName\": \"Palinic\"," +
-      "    \"email\": \"damir@palinic.com\"," +
-      "    \"username\": \"dpalinic\"," +
-      "    \"password\": \"test12345\"" +
+      "    \"company\": \"Thingy\"," +
+      "    \"firstName\": \"Watcher\"," +
+      "    \"lastName\": \"BGypsy\"," +
+      "    \"email\": \"watcherbgypsy@gmail.com\"," +
+      "    \"username\": \"watcherbgypsy\"," +
+      "    \"password\": \"password\"" +
       " }"
       given.
 
@@ -24,11 +26,12 @@ class TestSpec extends FlatSpec with Matchers with Logging {
     }
 
   "Json serialization" should "work" in {
+    val ctx = use(Identity.WATCHERBGYPSY)
       given.
         filter(asFilter(
-          preHandler = authHandler(RequestContext),
+          preHandler = authHandler(ctx),
           postHandlers = Map(
-            403 -> loginHandler().andThen(storeToken())
+            403 -> loginHandler(ctx).andThen(storeToken(ctx))
           )
         )).
 
@@ -37,7 +40,7 @@ class TestSpec extends FlatSpec with Matchers with Logging {
 
       then().
         statusCode(200).
-        body("users[0].username", is("dpalinic"))
+        body("users[0].username", is(ctx.get("username").getOrElse(throw new IllegalArgumentException("no test property 'username' found"))))
     }
 
 }
