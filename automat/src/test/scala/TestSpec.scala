@@ -1,4 +1,3 @@
-import automat.{Functions, Identity}
 import automat.Automat.given
 import org.apache.logging.log4j.scala.Logging
 import org.hamcrest.Matchers.is
@@ -13,7 +12,7 @@ class TestSpec extends FlatSpec with Matchers with Logging {
   "create an account" should "work" in {
       given.
 
-      when.port(9000).body(JSON_STRING).post("/api/client/registration").
+      when.body(JSON_STRING).post("/api/client/registration").
 
     then.statusCode(200)
     }

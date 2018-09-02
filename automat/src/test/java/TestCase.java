@@ -6,6 +6,7 @@ import static automat.Environment.LOCAL;
 import static automat.Functions.authHandler;
 import static automat.Functions.loginHandler;
 import static automat.Identity.WATCHERBGYPSY;
+import static automat.Resource.IDENTITY;
 import static org.hamcrest.Matchers.is;
 
 public class TestCase {
@@ -23,7 +24,7 @@ public class TestCase {
     public void testCreateUser() {
         given().
 
-                when().port(9000).body(JSON_STRING).post("/api/client/registration").
+                when().body(JSON_STRING).post("/api/client/registration").
 
                 then().statusCode(200);
     }
@@ -37,10 +38,9 @@ public class TestCase {
                 onResponse().apply(
                 forHttpCode(403).use(loginHandler) //.andThen(storeToken)
         ).
-        when().get("/api/state/identity").
-
-        then().
+        get(IDENTITY).then().
                 statusCode(200).
                 body("users[0].username", is(WATCHERBGYPSY.username()));
+
     }
 }

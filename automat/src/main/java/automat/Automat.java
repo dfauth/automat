@@ -11,6 +11,7 @@ import org.apache.logging.log4j.Logger;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -83,6 +84,14 @@ public class Automat {
 
     public RequestSpecification when() {
         return RestAssured.given().filter(asFilter()).port(Environment.getEnvironment().port());
+    }
+
+    public Response get(Resource r) {
+        return when().get(r.uri);
+    }
+
+    public Callable<Response> post(Resource r, String bodyContent) {
+        return () -> when().body(bodyContent).post(r.uri);
     }
 
     public static abstract class NestedBuilder<T> {
