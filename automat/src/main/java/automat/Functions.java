@@ -36,12 +36,4 @@ public class Functions {
             return res;
         }).andThen(storeToken.apply(ctx));
     };
-//        return r -> {
-//            logger.info("fire loginHandler: "+jsonString);
-//            Response res = r.body(jsonString).post("http://localhost/api/user/login");
-//            logger.info("res: "+res.statusCode());
-//            r.then().statusCode(200);
-//            return res;
-//        }.andThen(storeToken.apply(ctx));
-
 }

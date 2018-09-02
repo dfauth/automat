@@ -6,7 +6,7 @@ import automat.Automat.given
 import automat.Functions.{authHandler, loginHandler}
 import test.TestResource.{IDENTITY, REGISTRATION}
 import org.apache.logging.log4j.scala.Logging
-import org.hamcrest.Matchers.is
+import org.hamcrest.Matchers.{is, isOneOf}
 import org.scalatest.{FlatSpec, Matchers}
 import test.TestIdentity.WATCHERBGYPSY
 import test.User
@@ -20,7 +20,8 @@ class TestSpec extends FlatSpec with Matchers with Logging {
 
       post(REGISTRATION, user).
 
-    then.statusCode(400)
+    then.
+      statusCode(isOneOf[Integer](200, 400))
     }
 
   "Json serialization" should "work" in {

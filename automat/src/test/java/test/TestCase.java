@@ -11,6 +11,7 @@ import static test.TestIdentity.WATCHERBGYPSY;
 import static test.TestResource.IDENTITY;
 import static test.TestResource.REGISTRATION;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isOneOf;
 
 public class TestCase {
 
@@ -29,7 +30,7 @@ public class TestCase {
 
                 post(REGISTRATION, user).
 
-                then().statusCode(400);
+                then().statusCode(isOneOf(200,400));
     }
 
     @Test(groups = "identity")
