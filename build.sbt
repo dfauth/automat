@@ -61,7 +61,8 @@ lazy val `automat` = (project in file("automat"))
       "org.apache.logging.log4j" % "log4j-api" % "2.11.0",
       "org.apache.logging.log4j" % "log4j-core" % "2.11.0",
       "org.apache.logging.log4j" %% "log4j-api-scala" % "11.0",
-      "org.testng" % "testng" % "6.10"
+      "org.testng" % "testng" % "6.10",
+      "com.fasterxml.jackson.core" % "jackson-databind" % "2.9.4"
     )
   )
 

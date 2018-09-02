@@ -14,22 +14,22 @@ import static org.hamcrest.Matchers.is;
 
 public class TestCase {
 
-    public static final String JSON_STRING = "{" +
-            "    \"company\": \"Thingy\"," +
-            "    \"firstName\": \"Watcher\"," +
-            "    \"lastName\": \"BGypsy\"," +
-            "    \"email\": \"watcherbgypsy@gmail.com\"," +
-            "    \"username\": \"watcherbgypsy\"," +
-            "    \"password\": \"password\"" +
-            " }";
 
     @Test(groups = "createUser")
     public void testCreateUser() {
+
+        User user = new User().company("Thingy, Inc.").
+                firstname("Watcher").
+                lastname("BGypsy").
+                email("watcherbgypsy@gmail.com").
+                username(WATCHERBGYPSY.username()).
+                password(WATCHERBGYPSY.password());
+
         given().
 
-                post(REGISTRATION, JSON_STRING).
+                post(REGISTRATION, user).
 
-                then().statusCode(200);
+                then().statusCode(400);
     }
 
     @Test(groups = "identity")

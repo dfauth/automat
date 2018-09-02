@@ -8,17 +8,19 @@ import test.TestResource.{IDENTITY, REGISTRATION}
 import org.apache.logging.log4j.scala.Logging
 import org.hamcrest.Matchers.is
 import org.scalatest.{FlatSpec, Matchers}
-import test.TestCase.JSON_STRING
 import test.TestIdentity.WATCHERBGYPSY
+import test.User
 
 class TestSpec extends FlatSpec with Matchers with Logging {
 
   "create an account" should "work" in {
-      given.
 
-      post(REGISTRATION, JSON_STRING).
+    val user = new User().company("Thingy, Inc.").firstname("Watcher").lastname("BGypsy").email("watcherbgypsy@gmail.com").username(WATCHERBGYPSY.username).password(WATCHERBGYPSY.password)
+    given.
 
-    then.statusCode(200)
+      post(REGISTRATION, user).
+
+    then.statusCode(400)
     }
 
   "Json serialization" should "work" in {

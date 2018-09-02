@@ -1,5 +1,7 @@
 package automat;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restassured.RestAssured;
 import io.restassured.filter.Filter;
 import io.restassured.filter.FilterContext;
@@ -88,8 +90,14 @@ public class Automat {
         return when().get(r.uri());
     }
 
-    public Response post(Resource r, String bodyContent) {
-        return when().body(bodyContent).post(r.uri());
+    public <T> Response post(Resource r, T bodyContent) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            return when().body(mapper.writeValueAsString(bodyContent)).post(r.uri());
+        } catch (JsonProcessingException e) {
+            logger.error(e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
     }
 
     public static abstract class NestedBuilder<T> {
