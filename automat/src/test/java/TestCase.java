@@ -1,13 +1,11 @@
-import automat.Environment;
-import automat.Identity;
-import automat.RestClientContext;
 import org.testng.annotations.Test;
 
+import static automat.Automat.Utils.forHttpCode;
+import static automat.Automat.given;
+import static automat.Environment.LOCAL;
 import static automat.Functions.authHandler;
 import static automat.Functions.loginHandler;
-import static automat.RestClientContext.Utils.forHttpCode;
-import static automat.RestClientContext.environment;
-import static io.restassured.RestAssured.given;
+import static automat.Identity.WATCHERBGYPSY;
 import static org.hamcrest.Matchers.is;
 
 public class TestCase {
@@ -32,21 +30,17 @@ public class TestCase {
 
     @Test(groups = "identity")
     public void testIdentity() {
-        RestClientContext ctx = environment(Environment.LOCAL).
-                                use(Identity.WATCHERBGYPSY).
+
+        given().environment(LOCAL).
+                identity(WATCHERBGYPSY).
                 onRequest().apply(authHandler).
                 onResponse().apply(
-                        forHttpCode(403).use(loginHandler) //.andThen(storeToken)
-        );
+                forHttpCode(403).use(loginHandler) //.andThen(storeToken)
+        ).
+        when().get("/api/state/identity").
 
-        given().
-                filter(ctx.asFilter()).
-
-        when().
-                port(9000).get("/api/state/identity").
-
-                then().
+        then().
                 statusCode(200).
-                body("users[0].username", is(ctx.identity().map(i -> i.username()).orElseThrow(()-> new IllegalArgumentException("No username"))));
+                body("users[0].username", is(WATCHERBGYPSY.username()));
     }
 }

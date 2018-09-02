@@ -1,12 +1,10 @@
 package automat;
 
+import io.restassured.RestAssured;
 import io.restassured.filter.Filter;
 import io.restassured.filter.FilterContext;
 import io.restassured.response.Response;
-import io.restassured.specification.FilterableRequestSpecification;
-import io.restassured.specification.FilterableResponseSpecification;
-import io.restassured.specification.QueryableRequestSpecification;
-import io.restassured.specification.SpecificationQuerier;
+import io.restassured.specification.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -16,31 +14,37 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
-public class RestClientContext {
+public class Automat {
 
-    private static final Logger logger = LogManager.getLogger(RestClientContext.class);
+    private static final Logger logger = LogManager.getLogger(Automat.class);
 
+    private RequestSpecification req = RestAssured.given();
     private RequestBuilder requestBuilder;
     private ResponseBuilder responseBuilder;
     private String authToken;
     private String refreshToken;
     private Optional<Identity> identity = Optional.empty();
 
-    public static RestClientContext environment(Environment environment) {
-        return new RestClientContext().use(environment);
+    public static Automat given() {
+        return new Automat();
     }
 
-    public static RestClientContext identity(Identity identity) {
-        return new RestClientContext().use(identity);
-    }
-
-    public RestClientContext use(Environment environment) {
+    public Automat use(Environment environment) {
+        Environment.setEnvironment(environment);
         return this;
     }
 
-    public RestClientContext use(Identity identity) {
+    public Automat environment(Environment environment) {
+        return use(environment);
+    }
+
+    public Automat use(Identity identity) {
         this.identity = Optional.of(identity);
         return this;
+    }
+
+    public Automat identity(Identity identity) {
+        return use(identity);
     }
 
     public Optional<Identity> identity() {
@@ -77,15 +81,19 @@ public class RestClientContext {
         refreshToken = token;
     }
 
+    public RequestSpecification when() {
+        return RestAssured.given().filter(asFilter()).port(Environment.getEnvironment().port());
+    }
+
     public static abstract class NestedBuilder<T> {
 
-        protected final RestClientContext parent;
+        protected final Automat parent;
 
-        public NestedBuilder(RestClientContext parent) {
+        public NestedBuilder(Automat parent) {
             this.parent = parent;
         }
 
-        public final RestClientContext apply(T t) {
+        public final Automat apply(T t) {
             onApply(t);
             return this.parent;
         }
@@ -93,16 +101,16 @@ public class RestClientContext {
         protected abstract void onApply(T t);
     }
 
-    public static class RequestBuilder extends NestedBuilder<Function<RestClientContext, UnaryOperator<FilterableRequestSpecification>>> {
+    public static class RequestBuilder extends NestedBuilder<Function<Automat, UnaryOperator<FilterableRequestSpecification>>> {
 
-        private Function<RestClientContext, UnaryOperator<FilterableRequestSpecification>> f;
+        private Function<Automat, UnaryOperator<FilterableRequestSpecification>> f;
 
-        public RequestBuilder(RestClientContext parent) {
+        public RequestBuilder(Automat parent) {
             super(parent);
         }
 
         @Override
-        protected void onApply(Function<RestClientContext, UnaryOperator<FilterableRequestSpecification>> f) {
+        protected void onApply(Function<Automat, UnaryOperator<FilterableRequestSpecification>> f) {
             this.f = f;
         }
 
@@ -111,22 +119,22 @@ public class RestClientContext {
         }
     }
 
-    public static class ResponseBuilder extends NestedBuilder<MapBuilder<Integer, Function<RestClientContext, Function<FilterableRequestSpecification, Response>>>> {
+    public static class ResponseBuilder extends NestedBuilder<MapBuilder<Integer, Function<Automat, Function<FilterableRequestSpecification, Response>>>> {
 
-        private MapBuilder<Integer, Function<RestClientContext, Function<FilterableRequestSpecification, Response>>> mapBuilder;
+        private MapBuilder<Integer, Function<Automat, Function<FilterableRequestSpecification, Response>>> mapBuilder;
 
-        public ResponseBuilder(RestClientContext parent) {
+        public ResponseBuilder(Automat parent) {
             super(parent);
         }
 
         @Override
-        protected void onApply(MapBuilder<Integer, Function<RestClientContext, Function<FilterableRequestSpecification, Response>>> mapBuilder) {
+        protected void onApply(MapBuilder<Integer, Function<Automat, Function<FilterableRequestSpecification, Response>>> mapBuilder) {
             this.mapBuilder = mapBuilder;
         }
 
         public Map<Integer, Function<FilterableRequestSpecification, Response>> build() {
             Map<Integer, Function<FilterableRequestSpecification, Response>> newMap = new HashMap<>();
-            Map<Integer, Function<RestClientContext, Function<FilterableRequestSpecification, Response>>> map = mapBuilder.build();
+            Map<Integer, Function<Automat, Function<FilterableRequestSpecification, Response>>> map = mapBuilder.build();
             // transform
             map.entrySet().stream().forEach(e -> newMap.put(e.getKey(), e.getValue().apply(parent)));
             return newMap;
@@ -144,28 +152,28 @@ public class RestClientContext {
 
         private final Integer code;
 
-        protected HttpCodeKey(Map<Integer, Function<RestClientContext, Function<FilterableRequestSpecification, Response>>> map, Integer code) {
+        protected HttpCodeKey(Map<Integer, Function<Automat, Function<FilterableRequestSpecification, Response>>> map, Integer code) {
             super(map);
             this.code = code;
         }
 
-        public FilterFunctionValue use(Function<RestClientContext, Function<FilterableRequestSpecification, Response>> f) {
+        public FilterFunctionValue use(Function<Automat, Function<FilterableRequestSpecification, Response>> f) {
             map.put(code, f);
             return new FilterFunctionValue(map, f);
         }
 
     }
 
-    public static class FilterFunctionValue implements MapBuilder<Integer,Function<RestClientContext,Function<FilterableRequestSpecification,Response>>> {
+    public static class FilterFunctionValue implements MapBuilder<Integer,Function<Automat,Function<FilterableRequestSpecification,Response>>> {
 
-        protected final Map<Integer, Function<RestClientContext, Function<FilterableRequestSpecification, Response>>> map;
-        private Function<RestClientContext, Function<FilterableRequestSpecification, Response>> f;
+        protected final Map<Integer, Function<Automat, Function<FilterableRequestSpecification, Response>>> map;
+        private Function<Automat, Function<FilterableRequestSpecification, Response>> f;
 
-        protected FilterFunctionValue(Map<Integer, Function<RestClientContext, Function<FilterableRequestSpecification, Response>>> map) {
+        protected FilterFunctionValue(Map<Integer, Function<Automat, Function<FilterableRequestSpecification, Response>>> map) {
             this.map = map;
         }
 
-        protected FilterFunctionValue(Map<Integer, Function<RestClientContext, Function<FilterableRequestSpecification, Response>>> map, Function<RestClientContext, Function<FilterableRequestSpecification, Response>> f) {
+        protected FilterFunctionValue(Map<Integer, Function<Automat, Function<FilterableRequestSpecification, Response>>> map, Function<Automat, Function<FilterableRequestSpecification, Response>> f) {
             this(map);
             this.f = f;
         }
@@ -175,7 +183,7 @@ public class RestClientContext {
         }
 
         @Override
-        public Map<Integer, Function<RestClientContext, Function<FilterableRequestSpecification, Response>>> build() {
+        public Map<Integer, Function<Automat, Function<FilterableRequestSpecification, Response>>> build() {
             return map;
         }
     }

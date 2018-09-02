@@ -1,13 +1,12 @@
 import automat.{Functions, Identity}
-import io.restassured.RestAssured.given
+import automat.Automat.given
 import org.apache.logging.log4j.scala.Logging
 import org.hamcrest.Matchers.is
 import org.scalatest._
 import TestCase.JSON_STRING
 import automat.Identity.WATCHERBGYPSY
-import automat.RestClientContext.identity
 import automat.Functions.{authHandler, loginHandler}
-import automat.RestClientContext.Utils.forHttpCode
+import automat.Automat.Utils.forHttpCode
 
 class TestSpec extends FlatSpec with Matchers with Logging {
 
@@ -21,13 +20,10 @@ class TestSpec extends FlatSpec with Matchers with Logging {
 
   "Json serialization" should "work" in {
 
-    val ctx = identity(WATCHERBGYPSY).
-      onRequest().apply(authHandler).onResponse().apply(forHttpCode(403).use(loginHandler))
+    given.identity(WATCHERBGYPSY).
+      onRequest().apply(authHandler).onResponse().apply(forHttpCode(403).use(loginHandler)).
 
-    given().filter(ctx.asFilter()).
-
-    when.
-        port(9000).get("/api/state/identity").
+    when.get("/api/state/identity").
 
 
     then().

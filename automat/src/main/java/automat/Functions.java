@@ -12,7 +12,7 @@ public class Functions {
 
     private static final Logger logger = LogManager.getLogger(Functions.class);
 
-    public static Function<RestClientContext, UnaryOperator<FilterableRequestSpecification>> authHandler = ctx -> r -> {
+    public static Function<Automat, UnaryOperator<FilterableRequestSpecification>> authHandler = ctx -> r -> {
         ctx.authToken().<Void>map(t -> {
             r.header("Authorization", "Bearer "+t);
             return null;
@@ -20,13 +20,13 @@ public class Functions {
         return r;
     };
 
-    public static Function<RestClientContext, Function<Response, Response>> storeToken  = ctx -> r -> {
+    public static Function<Automat, Function<Response, Response>> storeToken  = ctx -> r -> {
         ctx.authToken(r.body().jsonPath().getString("authToken"));
         ctx.refreshToken(r.body().jsonPath().getString("refreshToken"));
         return r;
     };
 
-    public static Function<RestClientContext, Function<FilterableRequestSpecification, Response>> loginHandler  = ctx -> {
+    public static Function<Automat, Function<FilterableRequestSpecification, Response>> loginHandler  = ctx -> {
         String jsonString = "{\n\t\"username\": \"" + ctx.identity().map(i -> i.username()).orElse(null) + "\",\n\t\"password\": \"" + ctx.identity().map(i -> i.getPassword()).orElse(null) + "\"\n}";
         return ((Function<FilterableRequestSpecification, Response>) r -> {
             logger.info("fire loginHandler: "+jsonString);
