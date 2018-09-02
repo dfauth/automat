@@ -8,10 +8,10 @@ import io.restassured.specification.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -20,8 +20,8 @@ public class Automat {
     private static final Logger logger = LogManager.getLogger(Automat.class);
 
     private RequestSpecification req = RestAssured.given();
-    private RequestBuilder requestBuilder;
-    private ResponseBuilder responseBuilder;
+    private final RequestBuilder requestBuilder = new RequestBuilder(this);
+    private final ResponseBuilder responseBuilder = new ResponseBuilder(this);
     private String authToken;
     private String refreshToken;
     private Optional<Identity> identity = Optional.empty();
@@ -53,12 +53,10 @@ public class Automat {
     }
 
     public RequestBuilder onRequest() {
-        requestBuilder = new RequestBuilder(this);
         return requestBuilder;
     }
 
     public ResponseBuilder onResponse() {
-        this.responseBuilder = new ResponseBuilder(this);
         return this.responseBuilder;
     }
 
@@ -87,11 +85,11 @@ public class Automat {
     }
 
     public Response get(Resource r) {
-        return when().get(r.uri);
+        return when().get(r.uri());
     }
 
-    public Callable<Response> post(Resource r, String bodyContent) {
-        return () -> when().body(bodyContent).post(r.uri);
+    public Response post(Resource r, String bodyContent) {
+        return when().body(bodyContent).post(r.uri());
     }
 
     public static abstract class NestedBuilder<T> {
@@ -112,7 +110,7 @@ public class Automat {
 
     public static class RequestBuilder extends NestedBuilder<Function<Automat, UnaryOperator<FilterableRequestSpecification>>> {
 
-        private Function<Automat, UnaryOperator<FilterableRequestSpecification>> f;
+        private Function<Automat, UnaryOperator<FilterableRequestSpecification>> f = a -> r -> r;
 
         public RequestBuilder(Automat parent) {
             super(parent);
@@ -143,7 +141,7 @@ public class Automat {
 
         public Map<Integer, Function<FilterableRequestSpecification, Response>> build() {
             Map<Integer, Function<FilterableRequestSpecification, Response>> newMap = new HashMap<>();
-            Map<Integer, Function<Automat, Function<FilterableRequestSpecification, Response>>> map = mapBuilder.build();
+            Map<Integer, Function<Automat, Function<FilterableRequestSpecification, Response>>> map = Optional.ofNullable(mapBuilder).map(m -> m.build()).orElse(Collections.emptyMap());
             // transform
             map.entrySet().stream().forEach(e -> newMap.put(e.getKey(), e.getValue().apply(parent)));
             return newMap;

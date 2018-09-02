@@ -57,7 +57,7 @@ lazy val `automat` = (project in file("automat"))
     libraryDependencies ++= Seq(
       "io.rest-assured" % "rest-assured" % "3.1.1",
       "org.scalactic" %% "scalactic" % "3.0.5",
-      scalaTest,
+      "org.scalatest" %% "scalatest" % "3.0.5" % "test",
       "org.apache.logging.log4j" % "log4j-api" % "2.11.0",
       "org.apache.logging.log4j" % "log4j-core" % "2.11.0",
       "org.apache.logging.log4j" %% "log4j-api-scala" % "11.0",

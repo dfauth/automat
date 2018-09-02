@@ -1,18 +1,22 @@
+package thingy
+
+
+import automat.Automat.Utils.forHttpCode
 import automat.Automat.given
+import automat.Functions.{authHandler, loginHandler}
+import test.TestResource.{IDENTITY, REGISTRATION}
 import org.apache.logging.log4j.scala.Logging
 import org.hamcrest.Matchers.is
-import org.scalatest._
-import TestCase.JSON_STRING
-import automat.Identity.WATCHERBGYPSY
-import automat.Functions.{authHandler, loginHandler}
-import automat.Automat.Utils.forHttpCode
+import org.scalatest.{FlatSpec, Matchers}
+import test.TestCase.JSON_STRING
+import test.TestIdentity.WATCHERBGYPSY
 
 class TestSpec extends FlatSpec with Matchers with Logging {
 
   "create an account" should "work" in {
       given.
 
-      when.body(JSON_STRING).post("/api/client/registration").
+      post(REGISTRATION, JSON_STRING).
 
     then.statusCode(200)
     }
@@ -22,12 +26,12 @@ class TestSpec extends FlatSpec with Matchers with Logging {
     given.identity(WATCHERBGYPSY).
       onRequest().apply(authHandler).onResponse().apply(forHttpCode(403).use(loginHandler)).
 
-    when.get("/api/state/identity").
+    get(IDENTITY).
 
 
     then().
         statusCode(200).
-      body("users[0].username", is(WATCHERBGYPSY.getUsername))
+      body("users[0].username", is(WATCHERBGYPSY.username))
   }
 
 }

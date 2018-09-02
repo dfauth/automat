@@ -1,3 +1,5 @@
+package test;
+
 import org.testng.annotations.Test;
 
 import static automat.Automat.Utils.forHttpCode;
@@ -5,8 +7,9 @@ import static automat.Automat.given;
 import static automat.Environment.LOCAL;
 import static automat.Functions.authHandler;
 import static automat.Functions.loginHandler;
-import static automat.Identity.WATCHERBGYPSY;
-import static automat.Resource.IDENTITY;
+import static test.TestIdentity.WATCHERBGYPSY;
+import static test.TestResource.IDENTITY;
+import static test.TestResource.REGISTRATION;
 import static org.hamcrest.Matchers.is;
 
 public class TestCase {
@@ -24,7 +27,7 @@ public class TestCase {
     public void testCreateUser() {
         given().
 
-                when().body(JSON_STRING).post("/api/client/registration").
+                post(REGISTRATION, JSON_STRING).
 
                 then().statusCode(200);
     }

@@ -27,7 +27,7 @@ public class Functions {
     };
 
     public static Function<Automat, Function<FilterableRequestSpecification, Response>> loginHandler  = ctx -> {
-        String jsonString = "{\n\t\"username\": \"" + ctx.identity().map(i -> i.username()).orElse(null) + "\",\n\t\"password\": \"" + ctx.identity().map(i -> i.getPassword()).orElse(null) + "\"\n}";
+        String jsonString = "{\n\t\"username\": \"" + ctx.identity().map(i -> i.username()).orElse(null) + "\",\n\t\"password\": \"" + ctx.identity().map(i -> i.password()).orElse(null) + "\"\n}";
         return ((Function<FilterableRequestSpecification, Response>) r -> {
             logger.info("fire loginHandler: "+jsonString);
             Response res = r.body(jsonString).post("http://localhost/api/user/login");
