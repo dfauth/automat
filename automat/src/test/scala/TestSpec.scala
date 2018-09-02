@@ -1,12 +1,13 @@
-import automat.Identity
+import automat.{Functions, Identity}
 import io.restassured.RestAssured.given
 import org.apache.logging.log4j.scala.Logging
 import org.hamcrest.Matchers.is
 import org.scalatest._
-import thingy.handlers.{asFilter, authHandler, loginHandler, storeToken}
-import thingy.{TestContext, ThingyFilter}
-import thingy.Given.use
 import TestCase.JSON_STRING
+import automat.Identity.WATCHERBGYPSY
+import automat.RestClientContext.identity
+import automat.Functions.{authHandler, loginHandler}
+import automat.RestClientContext.Utils.forHttpCode
 
 class TestSpec extends FlatSpec with Matchers with Logging {
 
@@ -19,22 +20,20 @@ class TestSpec extends FlatSpec with Matchers with Logging {
     }
 
   "Json serialization" should "work" in {
-    val ctx = use(Identity.WATCHERBGYPSY)
-      given.
-        filter(asFilter(
-          preHandler = authHandler(ctx),
-          postHandlers = Map(
-            403 -> loginHandler(ctx).andThen(storeToken(ctx))
-          )
-        )).
 
-      when.
+    val ctx = identity(WATCHERBGYPSY).
+      onRequest().apply(authHandler).onResponse().apply(forHttpCode(403).use(loginHandler))
+
+    given().filter(ctx.asFilter()).
+
+    when.
         port(9000).get("/api/state/identity").
 
-      then().
+
+    then().
         statusCode(200).
-        body("users[0].username", is(ctx.get("username").getOrElse(throw new IllegalArgumentException("no test property 'username' found"))))
-    }
+      body("users[0].username", is(WATCHERBGYPSY.getUsername))
+  }
 
 }
 
