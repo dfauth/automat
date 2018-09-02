@@ -18,4 +18,8 @@ public enum Identity {
     public String getPassword() {
         return password;
     }
+
+    public String username() {
+        return username;
+    }
 }

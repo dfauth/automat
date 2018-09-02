@@ -6,21 +6,14 @@ import org.scalatest._
 import thingy.handlers.{asFilter, authHandler, loginHandler, storeToken}
 import thingy.{TestContext, ThingyFilter}
 import thingy.Given.use
+import TestCase.JSON_STRING
 
 class TestSpec extends FlatSpec with Matchers with Logging {
 
   "create an account" should "work" in {
-    val jsonString = "{" +
-      "    \"company\": \"Thingy\"," +
-      "    \"firstName\": \"Watcher\"," +
-      "    \"lastName\": \"BGypsy\"," +
-      "    \"email\": \"watcherbgypsy@gmail.com\"," +
-      "    \"username\": \"watcherbgypsy\"," +
-      "    \"password\": \"password\"" +
-      " }"
       given.
 
-      when.port(9000).body(jsonString).post("/api/client/registration").
+      when.port(9000).body(JSON_STRING).post("/api/client/registration").
 
     then.statusCode(200)
     }
