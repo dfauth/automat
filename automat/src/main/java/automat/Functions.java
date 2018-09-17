@@ -12,7 +12,8 @@ public class Functions {
 
     private static final Logger logger = LogManager.getLogger(Functions.class);
 
-    public static Function<Automat, UnaryOperator<FilterableRequestSpecification>> authHandler = ctx -> r -> {
+    public static UnaryOperator<FilterableRequestSpecification> authHandler = r -> {
+        Automat ctx = Automat.given();
         ctx.authToken().<Void>map(t -> {
             r.header("Authorization", "Bearer "+t);
             return null;
@@ -20,20 +21,31 @@ public class Functions {
         return r;
     };
 
-    public static Function<Automat, Function<Response, Response>> storeToken  = ctx -> r -> {
+    public static Function<Response, Response> subscribeTo(Resource resource) {
+        Automat ctx = Automat.given();
+        return r-> {
+            if(r.statusCode() == 200) {
+                logger.info("subscribing to "+resource);
+                // subscribe
+            }
+            return r;
+        };
+    };
+
+    public static Function<Response, Response> storeToken  = r -> {
+        Automat ctx = Automat.given();
         ctx.authToken(r.body().jsonPath().getString("authToken"));
         ctx.refreshToken(r.body().jsonPath().getString("refreshToken"));
         return r;
     };
 
-    public static Function<Automat, Function<FilterableRequestSpecification, Response>> loginHandler  = ctx -> {
+    public static Function<FilterableRequestSpecification, Response> loginHandler  = r -> {
+        Automat ctx = Automat.given();
         String jsonString = "{\n\t\"username\": \"" + ctx.identity().map(i -> i.username()).orElse(null) + "\",\n\t\"password\": \"" + ctx.identity().map(i -> i.password()).orElse(null) + "\"\n}";
-        return ((Function<FilterableRequestSpecification, Response>) r -> {
-            logger.info("fire loginHandler: "+jsonString);
-            Response res = r.body(jsonString).post("http://localhost/api/user/login");
-            logger.info("res: "+res.statusCode());
-            r.then().statusCode(200);
-            return res;
-        }).andThen(storeToken.apply(ctx));
+        logger.info("fire loginHandler: "+jsonString);
+        Response res = r.body(jsonString).post("http://localhost/api/user/login");
+        logger.info("res: "+res.statusCode());
+        r.then().statusCode(200);
+        return res;
     };
 }

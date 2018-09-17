@@ -20,6 +20,7 @@ import java.util.function.UnaryOperator;
 public class Automat {
 
     private static final Logger logger = LogManager.getLogger(Automat.class);
+    private static final ThreadLocal<Automat> automats = ThreadLocal.withInitial(() -> new Automat());
 
     private RequestSpecification req = RestAssured.given();
     private final RequestBuilder requestBuilder = new RequestBuilder(this);
@@ -29,7 +30,10 @@ public class Automat {
     private Optional<Identity> identity = Optional.empty();
 
     public static Automat given() {
-        return new Automat();
+        return automats.get();
+    }
+
+    private Automat() {
     }
 
     public Automat use(Environment environment) {
@@ -116,42 +120,42 @@ public class Automat {
         protected abstract void onApply(T t);
     }
 
-    public static class RequestBuilder extends NestedBuilder<Function<Automat, UnaryOperator<FilterableRequestSpecification>>> {
+    public static class RequestBuilder extends NestedBuilder<UnaryOperator<FilterableRequestSpecification>> {
 
-        private Function<Automat, UnaryOperator<FilterableRequestSpecification>> f = a -> r -> r;
+        private UnaryOperator<FilterableRequestSpecification> f = r -> r;
 
         public RequestBuilder(Automat parent) {
             super(parent);
         }
 
         @Override
-        protected void onApply(Function<Automat, UnaryOperator<FilterableRequestSpecification>> f) {
+        protected void onApply(UnaryOperator<FilterableRequestSpecification> f) {
             this.f = f;
         }
 
         public UnaryOperator<FilterableRequestSpecification> build() {
-            return f.apply(this.parent);
+            return f;
         }
     }
 
-    public static class ResponseBuilder extends NestedBuilder<MapBuilder<Integer, Function<Automat, Function<FilterableRequestSpecification, Response>>>> {
+    public static class ResponseBuilder extends NestedBuilder<MapBuilder<Integer, Function<FilterableRequestSpecification, Response>>> {
 
-        private MapBuilder<Integer, Function<Automat, Function<FilterableRequestSpecification, Response>>> mapBuilder;
+        private MapBuilder<Integer, Function<FilterableRequestSpecification, Response>> mapBuilder;
 
         public ResponseBuilder(Automat parent) {
             super(parent);
         }
 
         @Override
-        protected void onApply(MapBuilder<Integer, Function<Automat, Function<FilterableRequestSpecification, Response>>> mapBuilder) {
+        protected void onApply(MapBuilder<Integer, Function<FilterableRequestSpecification, Response>> mapBuilder) {
             this.mapBuilder = mapBuilder;
         }
 
         public Map<Integer, Function<FilterableRequestSpecification, Response>> build() {
             Map<Integer, Function<FilterableRequestSpecification, Response>> newMap = new HashMap<>();
-            Map<Integer, Function<Automat, Function<FilterableRequestSpecification, Response>>> map = Optional.ofNullable(mapBuilder).map(m -> m.build()).orElse(Collections.emptyMap());
+            Map<Integer, Function<FilterableRequestSpecification, Response>> map = Optional.ofNullable(mapBuilder).map(m -> m.build()).orElse(Collections.emptyMap());
             // transform
-            map.entrySet().stream().forEach(e -> newMap.put(e.getKey(), e.getValue().apply(parent)));
+            map.entrySet().stream().forEach(e -> newMap.put(e.getKey(), e.getValue()));
             return newMap;
         }
     }
@@ -167,28 +171,28 @@ public class Automat {
 
         private final Integer code;
 
-        protected HttpCodeKey(Map<Integer, Function<Automat, Function<FilterableRequestSpecification, Response>>> map, Integer code) {
+        protected HttpCodeKey(Map<Integer, Function<FilterableRequestSpecification, Response>> map, Integer code) {
             super(map);
             this.code = code;
         }
 
-        public FilterFunctionValue use(Function<Automat, Function<FilterableRequestSpecification, Response>> f) {
+        public FilterFunctionValue use(Function<FilterableRequestSpecification, Response> f) {
             map.put(code, f);
             return new FilterFunctionValue(map, f);
         }
 
     }
 
-    public static class FilterFunctionValue implements MapBuilder<Integer,Function<Automat,Function<FilterableRequestSpecification,Response>>> {
+    public static class FilterFunctionValue implements MapBuilder<Integer,Function<FilterableRequestSpecification,Response>> {
 
-        protected final Map<Integer, Function<Automat, Function<FilterableRequestSpecification, Response>>> map;
-        private Function<Automat, Function<FilterableRequestSpecification, Response>> f;
+        protected final Map<Integer, Function<FilterableRequestSpecification, Response>> map;
+        private Function<FilterableRequestSpecification, Response> f;
 
-        protected FilterFunctionValue(Map<Integer, Function<Automat, Function<FilterableRequestSpecification, Response>>> map) {
+        protected FilterFunctionValue(Map<Integer, Function<FilterableRequestSpecification, Response>> map) {
             this.map = map;
         }
 
-        protected FilterFunctionValue(Map<Integer, Function<Automat, Function<FilterableRequestSpecification, Response>>> map, Function<Automat, Function<FilterableRequestSpecification, Response>> f) {
+        protected FilterFunctionValue(Map<Integer, Function<FilterableRequestSpecification, Response>> map, Function<FilterableRequestSpecification, Response> f) {
             this(map);
             this.f = f;
         }
@@ -198,7 +202,7 @@ public class Automat {
         }
 
         @Override
-        public Map<Integer, Function<Automat, Function<FilterableRequestSpecification, Response>>> build() {
+        public Map<Integer, Function<FilterableRequestSpecification, Response>> build() {
             return map;
         }
     }

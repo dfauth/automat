@@ -5,7 +5,8 @@ import automat.Resource;
 public enum TestResource implements Resource {
 
     IDENTITY("/api/state/identity"),
-    REGISTRATION("/api/client/registration");
+    REGISTRATION("/api/client/registration"),
+    SUBSCRIPTION("/api/ws-eventBus");
 
     protected final String uri;
 
