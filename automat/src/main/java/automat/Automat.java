@@ -214,10 +214,6 @@ public class Automat {
         }
     }
 
-    interface MapBuilder<K,V> {
-        Map<K,V> build();
-    }
-
     private class RestAssuredFilter implements Filter {
 
         private final UnaryOperator<FilterableRequestSpecification> preHandler;

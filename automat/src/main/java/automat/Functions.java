@@ -1,7 +1,9 @@
 package automat;
 
+import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import io.restassured.specification.FilterableRequestSpecification;
+import io.restassured.specification.RequestSpecification;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -42,13 +44,14 @@ public class Functions {
     public static Function<FilterableRequestSpecification, Response> loginHandler(Resource resource) {
         Automat ctx = Automat.given();
         return r -> {
-            String jsonString = "{\n\t\"username\": \"" + ctx.identity().map(i -> i.username()).orElse(null) + "\",\n\t\"password\": \"" + ctx.identity().map(i -> i.password()).orElse(null) + "\"\n}";
-            // String jsonString = resource.bodyContent(IdentityHelper$.MODULE$.wrap(IdentityHelper$.MODULE$.extractIdentityFields(ctx.identity().get())));
-            logger.info("fire loginHandler: "+jsonString);
-            Response res = r.body(jsonString).post(ctx.toUri(resource));
+//            String jsonString = "{\n\t\"username\": \"" + ctx.identity().map(i -> i.username()).orElse(null) + "\",\n\t\"password\": \"" + ctx.identity().map(i -> i.password()).orElse(null) + "\"\n}";
+//            String jsonString = resource.bodyContent(IdentityHelper$.MODULE$.extractIdentityFields(ctx.identity().get()));
+//            logger.info("fire loginHandler: "+jsonString);
+            RequestSpecification tmp = r.contentType(ContentType.JSON).body(IdentityBean.of(ctx.identity()));
+            Response res = tmp.log().all().post(ctx.toUri(resource));
             logger.info("res: "+res.statusCode());
             r.then().statusCode(200);
             return res;
         };
-    };
+    }
 }
