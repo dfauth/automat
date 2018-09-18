@@ -1,11 +1,15 @@
 package automat;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+
 public enum Environment {
     LOCAL(9000);
 
     private static Environment instance;
     private final int port;
     private final String host;
+    private final String protocol;
 
 
     Environment() {
@@ -13,10 +17,11 @@ public enum Environment {
     }
 
     Environment(int port) {
-        this("localhost", port);
+        this("http", "localhost", port);
     }
 
-    Environment(String host, int port) {
+    Environment(String protocol, String host, int port) {
+        this.protocol = protocol;
         this.host = host;
         this.port = port;
     }
@@ -34,5 +39,13 @@ public enum Environment {
 
     public int port() {
         return port;
+    }
+
+    public URL toUri(Resource resource) {
+        try {
+            return new URL(protocol, host, port, resource.uri());
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

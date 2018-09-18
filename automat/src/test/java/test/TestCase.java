@@ -7,11 +7,9 @@ import static automat.Automat.given;
 import static automat.Environment.LOCAL;
 import static automat.Functions.*;
 import static test.TestIdentity.WATCHERBGYPSY;
-import static test.TestResource.IDENTITY;
-import static test.TestResource.REGISTRATION;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isOneOf;
-import static test.TestResource.SUBSCRIPTION;
+import static test.TestResource.*;
 
 public class TestCase {
 
@@ -40,7 +38,7 @@ public class TestCase {
                 identity(WATCHERBGYPSY).
                 onRequest().apply(authHandler).
                 onResponse().apply(
-                forHttpCode(403).use(loginHandler.andThen(storeToken).andThen(subscribeTo(SUBSCRIPTION)))
+                forHttpCode(403).use(loginHandler(AUTH).andThen(storeToken).andThen(subscribeTo(SUBSCRIPTION)))
         ).
         get(IDENTITY).then().
                 statusCode(200).

@@ -3,8 +3,8 @@ package thingy
 
 import automat.Automat.Utils.forHttpCode
 import automat.Automat.given
-import automat.Functions.{authHandler, loginHandler}
-import test.TestResource.{IDENTITY, REGISTRATION}
+import automat.Functions.{authHandler, loginHandler, storeToken}
+import test.TestResource.{IDENTITY, REGISTRATION,AUTH}
 import org.apache.logging.log4j.scala.Logging
 import org.hamcrest.Matchers.{is, isOneOf}
 import org.scalatest.{FlatSpec, Matchers}
@@ -27,7 +27,7 @@ class TestSpec extends FlatSpec with Matchers with Logging {
   "Json serialization" should "work" in {
 
     given.identity(WATCHERBGYPSY).
-      onRequest()(authHandler).onResponse().apply(forHttpCode(403).use(loginHandler)).
+      onRequest()(authHandler).onResponse().apply(forHttpCode(403).use(loginHandler(AUTH).andThen(storeToken))).
 
     get(IDENTITY).
 

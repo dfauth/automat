@@ -10,6 +10,7 @@ import io.restassured.specification.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,6 +29,7 @@ public class Automat {
     private String authToken;
     private String refreshToken;
     private Optional<Identity> identity = Optional.empty();
+    private Optional<Environment> environment = Optional.empty();
 
     public static Automat given() {
         return automats.get();
@@ -37,6 +39,7 @@ public class Automat {
     }
 
     public Automat use(Environment environment) {
+        this.environment = Optional.of(environment);
         Environment.setEnvironment(environment);
         return this;
     }
@@ -102,6 +105,10 @@ public class Automat {
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
         }
+    }
+
+    public URL toUri(Resource resource) {
+        return this.environment.orElseGet(()->Environment.getEnvironment()).toUri(resource);
     }
 
     public static abstract class NestedBuilder<T> {

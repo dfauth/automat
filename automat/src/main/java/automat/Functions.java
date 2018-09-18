@@ -39,13 +39,16 @@ public class Functions {
         return r;
     };
 
-    public static Function<FilterableRequestSpecification, Response> loginHandler  = r -> {
+    public static Function<FilterableRequestSpecification, Response> loginHandler(Resource resource) {
         Automat ctx = Automat.given();
-        String jsonString = "{\n\t\"username\": \"" + ctx.identity().map(i -> i.username()).orElse(null) + "\",\n\t\"password\": \"" + ctx.identity().map(i -> i.password()).orElse(null) + "\"\n}";
-        logger.info("fire loginHandler: "+jsonString);
-        Response res = r.body(jsonString).post("http://localhost/api/user/login");
-        logger.info("res: "+res.statusCode());
-        r.then().statusCode(200);
-        return res;
+        return r -> {
+            String jsonString = "{\n\t\"username\": \"" + ctx.identity().map(i -> i.username()).orElse(null) + "\",\n\t\"password\": \"" + ctx.identity().map(i -> i.password()).orElse(null) + "\"\n}";
+            // String jsonString = resource.bodyContent(IdentityHelper$.MODULE$.wrap(IdentityHelper$.MODULE$.extractIdentityFields(ctx.identity().get())));
+            logger.info("fire loginHandler: "+jsonString);
+            Response res = r.body(jsonString).post(ctx.toUri(resource));
+            logger.info("res: "+res.statusCode());
+            r.then().statusCode(200);
+            return res;
+        };
     };
 }
