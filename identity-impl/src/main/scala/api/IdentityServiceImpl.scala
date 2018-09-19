@@ -103,6 +103,20 @@ class IdentityServiceImpl(
     }
   }
 
+  //   def stream: ServiceCall[Source[String, NotUsed], Source[String, NotUsed]]
+
+  override def stream() = authenticated { (tokenContent, _) =>
+    ServerServiceCall { flow =>
+      Future.successful(flow.mapAsync(8)(s => getIdentityState().invoke().map(_.toString)))
+    }
+
+    /**
+    def stream = ServiceCall { hellos =>
+    Future.successful(hellos.mapAsync(8)(hellolagomService.hello(_).invoke()))
+  }
+       */
+  }
+
   private def reserveUsernameAndEmail[B](request: WithUserCreationFields, onSuccess: () => Future[B]): Future[B] = {
     def rollbackReservations(request: WithUserCreationFields,usernameReserved: Boolean, emailReserved: Boolean) = {
       if (usernameReserved) {
