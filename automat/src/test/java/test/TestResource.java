@@ -13,7 +13,7 @@ public enum TestResource implements Resource {
     AUTH("/api/user/login"), //, keys("username","password")),
     IDENTITY("/api/state/identity"),
     REGISTRATION("/api/client/registration"),
-    SUBSCRIPTION("/api/ws-eventBus");
+    SUBSCRIPTION("/api/stream");
 
     protected final String uri;
     protected final Map<String, ?> map;

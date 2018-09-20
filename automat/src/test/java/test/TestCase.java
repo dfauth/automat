@@ -32,7 +32,7 @@ public class TestCase {
     }
 
     @Test(groups = "identity")
-    public void testIdentity() {
+    public void testIdentity() throws InterruptedException {
 
         given().environment(LOCAL).
                 identity(WATCHERBGYPSY).
@@ -43,6 +43,7 @@ public class TestCase {
         get(IDENTITY).then().
                 statusCode(200).
                 body("users[0].username", is(WATCHERBGYPSY.username()));
+        Thread.currentThread().sleep(10000);
 
     }
 }

@@ -7,6 +7,9 @@ import io.restassured.specification.RequestSpecification;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import javax.websocket.*;
+import java.io.IOException;
+import java.net.URI;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -29,10 +32,11 @@ public class Functions {
             if(r.statusCode() == 200) {
                 logger.info("subscribing to "+resource);
                 // subscribe
+                WebSocketEndpoint client = websocketClient(ctx.toUri("ws", resource));
             }
             return r;
         };
-    };
+    }
 
     public static Function<Response, Response> storeToken  = r -> {
         Automat ctx = Automat.given();
@@ -54,4 +58,22 @@ public class Functions {
             return res;
         };
     }
+
+    private static WebSocketEndpoint websocketClient(URI uri) {
+        try {
+            WebSocketEndpoint endPoint = new WebSocketEndpoint((t,s)->{
+                logger.info("WebSocketEndpoint: Message received from server:"+t);
+            });
+            WebSocketContainer container = ContainerProvider.getWebSocketContainer();
+            container.connectToServer(endPoint, uri);
+            return endPoint;
+        } catch (DeploymentException e) {
+            logger.error(e.getMessage(), e);
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            logger.error(e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
+    }
+
 }

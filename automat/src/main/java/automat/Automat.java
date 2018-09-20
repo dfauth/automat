@@ -10,7 +10,7 @@ import io.restassured.specification.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.net.URL;
+import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -107,8 +107,16 @@ public class Automat {
         }
     }
 
-    public URL toUri(Resource resource) {
-        return this.environment.orElseGet(()->Environment.getEnvironment()).toUri(resource);
+    public URI toUri(Resource resource) {
+        return env().toUri(resource);
+    }
+
+    public URI toUri(String protocol, Resource resource) {
+        return env().toUri(protocol, resource);
+    }
+
+    private Environment env() {
+        return this.environment.orElseGet(()->Environment.getEnvironment());
     }
 
     public static abstract class NestedBuilder<T> {

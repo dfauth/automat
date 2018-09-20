@@ -1,7 +1,7 @@
 package automat;
 
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 public enum Environment {
     LOCAL(9000);
@@ -41,10 +41,14 @@ public enum Environment {
         return port;
     }
 
-    public URL toUri(Resource resource) {
+    public URI toUri(Resource resource) {
+        return toUri(protocol, resource);
+    }
+
+    public URI toUri(String protocol, Resource resource) {
         try {
-            return new URL(protocol, host, port, resource.uri());
-        } catch (MalformedURLException e) {
+            return new URI(protocol, null, host, port, resource.uri(), null, null);
+        } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
     }
