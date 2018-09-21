@@ -108,12 +108,12 @@ class IdentityServiceImpl(
   override def stream() = authenticated { (tokenContent, _) =>
     ServerServiceCall { flow =>
       logger.info("stream: flow: "+flow+" tokenContent: "+tokenContent)
-      Future.successful(flow.mapAsync(8)(s => {
-        logger.info("stream: s: "+s)
-        val result = getIdentityState().invoke().map(_.toString)
-        logger.info("result: "+result)
-        result
-      }))
+      Future.successful(flow.mapAsync(1) {
+        case "ping" => {
+          logger.info("received ping")
+          Future.successful("pong")
+        }
+      })
     }
 
     /**

@@ -7,9 +7,8 @@ import io.restassured.specification.RequestSpecification;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import javax.websocket.*;
-import java.io.IOException;
-import java.net.URI;
+import javax.websocket.CloseReason;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -21,6 +20,7 @@ public class Functions {
 
     public static UnaryOperator<FilterableRequestSpecification> authHandler = r -> {
         AutomationContext ctx = given();
+        logger.info("authHandler");
         ctx.authToken().<Void>map(t -> {
             r.header("Authorization", "Bearer "+t);
             return null;
@@ -28,19 +28,24 @@ public class Functions {
         return r;
     };
 
-    public static Function<Response, Response> subscribeTo(Resource resource) {
+    public static Function<Response, Response> subscribeTo(Resource resource, Consumer<WebSocketEndpoint> consumer, Consumer<String> messageConsumer, Consumer<CloseReason> closeConsumer) {
         AutomationContext ctx = given();
         return r-> {
             if(r.statusCode() == 200) {
                 logger.info("subscribing to "+resource);
                 // subscribe
-                WebSocketEndpoint client = websocketClient(ctx.toUri("ws", resource));
+                WebSocketEndpoint endPoint = new WebSocketEndpoint(given(), ctx.toUri("ws", resource));
+                endPoint.onOpen(s->consumer.accept(endPoint));
+                endPoint.onText(t->messageConsumer.accept(t));
+                endPoint.onClose(q->closeConsumer.accept(q));
+                endPoint.start();
             }
             return r;
         };
     }
 
     public static Function<Response, Response> storeToken  = r -> {
+        logger.info("storeToken");
         AutomationContext ctx = given();
         ctx.authToken(r.body().jsonPath().getString("authToken"));
         ctx.refreshToken(r.body().jsonPath().getString("refreshToken"));
@@ -50,32 +55,12 @@ public class Functions {
     public static Function<FilterableRequestSpecification, Response> loginHandler(Resource resource) {
         AutomationContext ctx = given();
         return r -> {
-//            String jsonString = "{\n\t\"username\": \"" + ctx.identity().map(i -> i.username()).orElse(null) + "\",\n\t\"password\": \"" + ctx.identity().map(i -> i.password()).orElse(null) + "\"\n}";
-//            String jsonString = resource.bodyContent(IdentityHelper$.MODULE$.extractIdentityFields(ctx.identity().get()));
-//            logger.info("fire loginHandler: "+jsonString);
             RequestSpecification tmp = r.contentType(ContentType.JSON).body(IdentityBean.of(ctx.identity()));
             Response res = tmp.log().all().post(ctx.toUri(resource));
-            logger.info("res: "+res.statusCode());
+            logger.info("loginHandler response statusCode: "+res.statusCode());
             r.then().statusCode(200);
             return res;
         };
-    }
-
-    private static WebSocketEndpoint websocketClient(URI uri) {
-        try {
-            WebSocketEndpoint endPoint = new WebSocketEndpoint(given(), (t,s)->{
-                logger.info("WebSocketEndpoint: Message received from server:"+t);
-            });
-            WebSocketContainer container = ContainerProvider.getWebSocketContainer();
-            container.connectToServer(endPoint, endPoint.getConfig(), uri);
-            return endPoint;
-        } catch (DeploymentException e) {
-            logger.error(e.getMessage(), e);
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            logger.error(e.getMessage(), e);
-            throw new RuntimeException(e);
-        }
     }
 
 }

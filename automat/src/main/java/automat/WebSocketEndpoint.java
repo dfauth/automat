@@ -5,10 +5,10 @@ import org.apache.logging.log4j.Logger;
 
 import javax.websocket.*;
 import java.io.IOException;
+import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 
@@ -18,26 +18,17 @@ public class WebSocketEndpoint extends Endpoint {
 
     private static final Logger logger = LogManager.getLogger(WebSocketEndpoint.class);
 
-    private final Consumer<Session> _onOpen;
-    private final BiConsumer<String, Session> _onText;
-    private final BiConsumer<CloseReason, Session> _onClose;
+    private Consumer<Session> _onOpen = s -> {};
+    private Consumer<String> _onText = t -> {};
+    private Consumer<CloseReason> _onClose = r -> {};
     private final AutomationContext ctx;
     private final ClientEndpointConfig.Builder builder;
+    private final URI uri;
     private Session session;
 
-    public WebSocketEndpoint(AutomationContext ctx) {
-        this(ctx, (t,s)->{});
-    }
-
-    public WebSocketEndpoint(AutomationContext ctx, BiConsumer<String, Session> onText) {
-        this(ctx, s->{}, onText, (r,s)->{});
-    }
-
-    public WebSocketEndpoint(AutomationContext ctx, Consumer<Session> onOpen, BiConsumer<String, Session> onText, BiConsumer<CloseReason, Session> onClose) {
+    public WebSocketEndpoint(AutomationContext ctx, URI uri) {
         this.ctx = ctx;
-        _onOpen = onOpen;
-        _onText = onText;
-        _onClose = onClose;
+        this.uri = uri;
         this.builder = ClientEndpointConfig.Builder.create();
         this.builder.configurator(new Configurator(ctx));
     }
@@ -49,20 +40,33 @@ public class WebSocketEndpoint extends Endpoint {
         _onOpen.accept(session);
     }
 
+    public void onOpen(Consumer<Session> consumer) {
+        _onOpen = consumer;
+    }
+
+    public void onText(Consumer<String> consumer) {
+        _onText = consumer;
+    }
+
+    public void onClose(Consumer<CloseReason> consumer) {
+        _onClose = consumer;
+    }
+
     @OnMessage
     public void onText(String message, Session session) {
-        _onText.accept(message,session);
+        _onText.accept(message);
     }
 
     @OnClose
     public void onClose(CloseReason reason, Session session) {
         logger.info("WebSocketEndpoint: Closing a WebSocket due to " + reason.getReasonPhrase());
-        _onClose.accept(reason, session);
+        _onClose.accept(reason);
     }
 
-    public void sendMessage(String str) {
+    public void sendMessage(String text) {
         try {
-            session.getBasicRemote().sendText(str);
+            logger.info("WebSocketEndpoint: sendMessage: "+text);
+            session.getBasicRemote().sendText(text);
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e.getMessage(), e);
@@ -78,6 +82,19 @@ public class WebSocketEndpoint extends Endpoint {
         this.session = session;
         logger.info("WebSocketEndpoint: Connected to server. session: "+session);
         _onOpen.accept(session);
+    }
+
+    public void start() {
+        try {
+            WebSocketContainer container = ContainerProvider.getWebSocketContainer();
+            container.connectToServer(this, getConfig(), uri);
+        } catch (DeploymentException e) {
+            logger.error(e.getMessage(), e);
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            logger.error(e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
     }
 
     public static class Configurator extends ClientEndpointConfig.Configurator {
