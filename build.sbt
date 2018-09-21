@@ -14,6 +14,9 @@ val scalaTest = "org.scalatest" %% "scalatest" % "3.0.5" % Test
 val base64 = "me.lessis" %% "base64" % "0.2.0"
 val jwt = "com.pauldijou" %% "jwt-play-json" % "0.12.1"
 val accord = "com.wix" %% "accord-core" % "0.6.1"
+val log4j_api = "org.apache.logging.log4j" % "log4j-api" % "2.11.0"
+val log4j_core = "org.apache.logging.log4j" % "log4j-core" % "2.11.0"
+val log4j_api_scala = "org.apache.logging.log4j" %% "log4j-api-scala" % "11.0"
 
 lazy val `lagom-jwt-auth` = (project in file("."))
   .aggregate(`common`, `identity-api`, `identity-impl`)
@@ -43,6 +46,9 @@ lazy val `identity-impl` = (project in file("identity-impl"))
     libraryDependencies ++= Seq(
       lagomScaladslPersistenceCassandra,
       lagomScaladslTestKit,
+      log4j_api,
+      log4j_core,
+      log4j_api_scala,
       macwire,
       scalaTest,
       base64,
@@ -58,9 +64,9 @@ lazy val `automat` = (project in file("automat"))
       "io.rest-assured" % "rest-assured" % "3.1.1",
       "org.scalactic" %% "scalactic" % "3.0.5",
       "org.scalatest" %% "scalatest" % "3.0.5" % "test",
-      "org.apache.logging.log4j" % "log4j-api" % "2.11.0",
-      "org.apache.logging.log4j" % "log4j-core" % "2.11.0",
-      "org.apache.logging.log4j" %% "log4j-api-scala" % "11.0",
+      log4j_api,
+      log4j_core,
+      log4j_api_scala,
       "org.testng" % "testng" % "6.10",
       "com.fasterxml.jackson.core" % "jackson-databind" % "2.9.4",
       "org.eclipse.jetty.websocket" % "javax-websocket-client-impl" % "latest.integration",

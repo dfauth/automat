@@ -12,14 +12,14 @@ import com.lightbend.lagom.scaladsl.api.transport.{BadRequest, Forbidden}
 import com.lightbend.lagom.scaladsl.persistence.PersistentEntityRegistry
 import com.lightbend.lagom.scaladsl.server.ServerServiceCall
 import io.digitalcat.publictransportation.services.identity.impl.util.{JwtTokenUtil, SecurePasswordHashing}
+import org.apache.logging.log4j.scala.Logging
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class IdentityServiceImpl(
   persistentRegistry: PersistentEntityRegistry,
   identityRepository: IdentityRepository
-)(implicit ec: ExecutionContext) extends IdentityService
-{
+)(implicit ec: ExecutionContext) extends IdentityService with Logging {
   override def registerClient() = ServiceCall { request =>
     validate(request)
 
@@ -107,7 +107,13 @@ class IdentityServiceImpl(
 
   override def stream() = authenticated { (tokenContent, _) =>
     ServerServiceCall { flow =>
-      Future.successful(flow.mapAsync(8)(s => getIdentityState().invoke().map(_.toString)))
+      logger.info("stream: flow: "+flow+" tokenContent: "+tokenContent)
+      Future.successful(flow.mapAsync(8)(s => {
+        logger.info("stream: s: "+s)
+        val result = getIdentityState().invoke().map(_.toString)
+        logger.info("result: "+result)
+        result
+      }))
     }
 
     /**
