@@ -18,7 +18,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
-public class Automat {
+public class Automat implements AutomationContext {
 
     private static final Logger logger = LogManager.getLogger(Automat.class);
     private static final ThreadLocal<Automat> automats = ThreadLocal.withInitial(() -> new Automat());
@@ -31,20 +31,20 @@ public class Automat {
     private Optional<Identity> identity = Optional.empty();
     private Optional<Environment> environment = Optional.empty();
 
-    public static Automat given() {
+    public static AutomationContext given() {
         return automats.get();
     }
 
     private Automat() {
     }
 
-    public Automat use(Environment environment) {
+    public AutomationContext use(Environment environment) {
         this.environment = Optional.of(environment);
         Environment.setEnvironment(environment);
         return this;
     }
 
-    public Automat environment(Environment environment) {
+    public AutomationContext environment(Environment environment) {
         return use(environment);
     }
 
@@ -256,5 +256,6 @@ public class Automat {
             return postHandle(req, res);
         }
     }
+
 }
 

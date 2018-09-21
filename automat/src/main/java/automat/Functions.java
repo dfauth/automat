@@ -13,12 +13,14 @@ import java.net.URI;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
+import static automat.Automat.given;
+
 public class Functions {
 
     private static final Logger logger = LogManager.getLogger(Functions.class);
 
     public static UnaryOperator<FilterableRequestSpecification> authHandler = r -> {
-        Automat ctx = Automat.given();
+        AutomationContext ctx = given();
         ctx.authToken().<Void>map(t -> {
             r.header("Authorization", "Bearer "+t);
             return null;
@@ -27,7 +29,7 @@ public class Functions {
     };
 
     public static Function<Response, Response> subscribeTo(Resource resource) {
-        Automat ctx = Automat.given();
+        AutomationContext ctx = given();
         return r-> {
             if(r.statusCode() == 200) {
                 logger.info("subscribing to "+resource);
@@ -39,14 +41,14 @@ public class Functions {
     }
 
     public static Function<Response, Response> storeToken  = r -> {
-        Automat ctx = Automat.given();
+        AutomationContext ctx = given();
         ctx.authToken(r.body().jsonPath().getString("authToken"));
         ctx.refreshToken(r.body().jsonPath().getString("refreshToken"));
         return r;
     };
 
     public static Function<FilterableRequestSpecification, Response> loginHandler(Resource resource) {
-        Automat ctx = Automat.given();
+        AutomationContext ctx = given();
         return r -> {
 //            String jsonString = "{\n\t\"username\": \"" + ctx.identity().map(i -> i.username()).orElse(null) + "\",\n\t\"password\": \"" + ctx.identity().map(i -> i.password()).orElse(null) + "\"\n}";
 //            String jsonString = resource.bodyContent(IdentityHelper$.MODULE$.extractIdentityFields(ctx.identity().get()));
@@ -61,11 +63,11 @@ public class Functions {
 
     private static WebSocketEndpoint websocketClient(URI uri) {
         try {
-            WebSocketEndpoint endPoint = new WebSocketEndpoint((t,s)->{
+            WebSocketEndpoint endPoint = new WebSocketEndpoint(given(), (t,s)->{
                 logger.info("WebSocketEndpoint: Message received from server:"+t);
             });
             WebSocketContainer container = ContainerProvider.getWebSocketContainer();
-            container.connectToServer(endPoint, uri);
+            container.connectToServer(endPoint, endPoint.getConfig(), uri);
             return endPoint;
         } catch (DeploymentException e) {
             logger.error(e.getMessage(), e);

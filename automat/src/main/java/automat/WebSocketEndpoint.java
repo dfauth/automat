@@ -5,32 +5,41 @@ import org.apache.logging.log4j.Logger;
 
 import javax.websocket.*;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 
-@ClientEndpoint
-public class WebSocketEndpoint {
+@ClientEndpoint()
+//@ClientEndpoint(configurator = WebSocketEndpoint.Configurator.class)
+public class WebSocketEndpoint extends Endpoint {
 
     private static final Logger logger = LogManager.getLogger(WebSocketEndpoint.class);
 
     private final Consumer<Session> _onOpen;
     private final BiConsumer<String, Session> _onText;
     private final BiConsumer<CloseReason, Session> _onClose;
+    private final AutomationContext ctx;
+    private final ClientEndpointConfig.Builder builder;
     private Session session;
 
-    public WebSocketEndpoint() {
-        this((t,s)->{});
+    public WebSocketEndpoint(AutomationContext ctx) {
+        this(ctx, (t,s)->{});
     }
 
-    public WebSocketEndpoint(BiConsumer<String, Session> onText) {
-        this(s->{}, onText, (r,s)->{});
+    public WebSocketEndpoint(AutomationContext ctx, BiConsumer<String, Session> onText) {
+        this(ctx, s->{}, onText, (r,s)->{});
     }
 
-    public WebSocketEndpoint(Consumer<Session> onOpen, BiConsumer<String, Session> onText, BiConsumer<CloseReason, Session> onClose) {
+    public WebSocketEndpoint(AutomationContext ctx, Consumer<Session> onOpen, BiConsumer<String, Session> onText, BiConsumer<CloseReason, Session> onClose) {
+        this.ctx = ctx;
         _onOpen = onOpen;
         _onText = onText;
         _onClose = onClose;
+        this.builder = ClientEndpointConfig.Builder.create();
+        this.builder.configurator(new Configurator(ctx));
     }
 
     @OnOpen
@@ -58,5 +67,36 @@ public class WebSocketEndpoint {
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e.getMessage(), e);
         }
+    }
+
+    public ClientEndpointConfig getConfig() {
+        return this.builder.build();
+    }
+
+    @Override
+    public void onOpen(Session session, EndpointConfig config) {
+        this.session = session;
+        logger.info("WebSocketEndpoint: Connected to server. session: "+session);
+        _onOpen.accept(session);
+    }
+
+    public static class Configurator extends ClientEndpointConfig.Configurator {
+
+        private final AutomationContext ctx;
+
+        public Configurator(AutomationContext ctx) {
+            this.ctx = ctx;
+        }
+
+        @Override
+        public void beforeRequest(Map<String, List<String>> headers) {
+            super.beforeRequest(headers);
+            ctx.authToken().<Void>map(t -> {
+                headers.put("Authorization", Collections.singletonList("Bearer "+t));
+                return null;
+            });
+        }
+
+
     }
 }
