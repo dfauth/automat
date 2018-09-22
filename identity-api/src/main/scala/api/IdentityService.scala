@@ -17,17 +17,24 @@ trait IdentityService extends Service {
 
   override final def descriptor = {
     import Service._
-    // @formatter:off
+
     named("identity-service").withCalls(
       restCall(Method.POST, "/api/client/registration", registerClient _),
       restCall(Method.POST, "/api/user/login", loginUser _),
       restCall(Method.PUT, "/api/user/token", refreshToken _),
       restCall(Method.GET, "/api/state/identity", getIdentityState _),
       restCall(Method.POST, "/api/user", createUser _),
-      restCall(Method.GET, "/api/stream", stream _)
+      namedCall("/api/stream", stream _)
     ).withAutoAcl(true)
-    // @formatter:on
+
   }
 
+  /**
+    *
+  named("hello-lagom-stream")
+      .withCalls(
+        namedCall("stream", stream)
+    *
+    */
 
 }

@@ -12,9 +12,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 
-@ClientEndpoint()
-//@ClientEndpoint(configurator = WebSocketEndpoint.Configurator.class)
-public class WebSocketEndpoint extends Endpoint {
+public class WebSocketEndpoint extends Endpoint implements MessageHandler.Whole<String> {
 
     private static final Logger logger = LogManager.getLogger(WebSocketEndpoint.class);
 
@@ -33,13 +31,6 @@ public class WebSocketEndpoint extends Endpoint {
         this.builder.configurator(new Configurator(ctx));
     }
 
-    @OnOpen
-    public void onOpen(Session session) {
-        this.session = session;
-        logger.info("WebSocketEndpoint: Connected to server. session: "+session);
-        _onOpen.accept(session);
-    }
-
     public void onOpen(Consumer<Session> consumer) {
         _onOpen = consumer;
     }
@@ -50,17 +41,6 @@ public class WebSocketEndpoint extends Endpoint {
 
     public void onClose(Consumer<CloseReason> consumer) {
         _onClose = consumer;
-    }
-
-    @OnMessage
-    public void onText(String message, Session session) {
-        _onText.accept(message);
-    }
-
-    @OnClose
-    public void onClose(CloseReason reason, Session session) {
-        logger.info("WebSocketEndpoint: Closing a WebSocket due to " + reason.getReasonPhrase());
-        _onClose.accept(reason);
     }
 
     public void sendMessage(String text) {
@@ -80,8 +60,15 @@ public class WebSocketEndpoint extends Endpoint {
     @Override
     public void onOpen(Session session, EndpointConfig config) {
         this.session = session;
+        session.addMessageHandler(this);
         logger.info("WebSocketEndpoint: Connected to server. session: "+session);
         _onOpen.accept(session);
+    }
+
+    @Override
+    public void onClose(Session session, CloseReason reason) {
+        logger.info("WebSocketEndpoint: Closing a WebSocket due to " + reason.getReasonPhrase());
+        _onClose.accept(reason);
     }
 
     public void start() {
@@ -95,6 +82,11 @@ public class WebSocketEndpoint extends Endpoint {
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public void onMessage(String message) {
+        _onText.accept(message);
     }
 
     public static class Configurator extends ClientEndpointConfig.Configurator {
