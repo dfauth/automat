@@ -1,11 +1,12 @@
 package test;
 
 import automat.WebSocketEndpoint;
+import automat.WebSocketEvent;
+import automat.WebSocketTextEndpoint;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.annotations.Test;
 
-import javax.websocket.Session;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.concurrent.Executors;
@@ -21,9 +22,8 @@ public class WebSocketEndpointTest {
 
     @Test
     public void testIt() throws URISyntaxException, InterruptedException {
-        WebSocketEndpoint endpoint = new WebSocketEndpoint(given(),new URI("ws://localhost:9000/stream"));
-        endpoint.onOpen(onOpen(endpoint));
-        endpoint.onText(onText(endpoint));
+        WebSocketEndpoint endpoint = new WebSocketTextEndpoint(given(),new URI("ws://localhost:9000/stream"));
+        endpoint.onEvent(onOpen());
         endpoint.start();
         sleep(100000);
     }
@@ -43,13 +43,13 @@ public class WebSocketEndpointTest {
         };
     }
 
-    private Consumer<Session> onOpen(WebSocketEndpoint endpoint) {
-        return s -> {
+    private Consumer<WebSocketEvent<String>> onOpen() {
+        return event -> {
             Executors.newSingleThreadExecutor().submit(()->{
                 try {
                     logger.info("session open");
                     sleep(5000);
-                    endpoint.sendMessage("ping");
+                    event.endPoint().sendMessage("ping");
                 } catch (InterruptedException e) {
                     logger.error(e.getMessage(), e);
                     throw new RuntimeException(e);

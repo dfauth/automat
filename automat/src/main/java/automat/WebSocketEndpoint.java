@@ -12,17 +12,15 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 
-public class WebSocketEndpoint extends Endpoint implements MessageHandler.Whole<String> {
+public abstract class WebSocketEndpoint<T> extends Endpoint implements MessageHandler.Partial<T> {
 
     private static final Logger logger = LogManager.getLogger(WebSocketEndpoint.class);
 
-    private Consumer<Session> _onOpen = s -> {};
-    private Consumer<String> _onText = t -> {};
-    private Consumer<CloseReason> _onClose = r -> {};
+    private Consumer<WebSocketEvent<T>> consumer = e -> {};
     private final AutomationContext ctx;
     private final ClientEndpointConfig.Builder builder;
     private final URI uri;
-    private Session session;
+    protected Session session;
 
     public WebSocketEndpoint(AutomationContext ctx, URI uri) {
         this.ctx = ctx;
@@ -31,27 +29,21 @@ public class WebSocketEndpoint extends Endpoint implements MessageHandler.Whole<
         this.builder.configurator(new Configurator(ctx));
     }
 
-    public void onOpen(Consumer<Session> consumer) {
-        _onOpen = consumer;
+    public void onEvent(Consumer<WebSocketEvent<T>> consumer) {
+        this.consumer = consumer;
     }
 
-    public void onText(Consumer<String> consumer) {
-        _onText = consumer;
-    }
-
-    public void onClose(Consumer<CloseReason> consumer) {
-        _onClose = consumer;
-    }
-
-    public void sendMessage(String text) {
+    public void sendMessage(T t) {
         try {
-            logger.info("WebSocketEndpoint: sendMessage: "+text);
-            session.getBasicRemote().sendText(text);
+            logger.info("WebSocketEndpoint: sendMessage: "+t);
+            _sendMessage(t);
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e.getMessage(), e);
         }
     }
+
+    protected abstract void _sendMessage(T t) throws IOException;
 
     public ClientEndpointConfig getConfig() {
         return this.builder.build();
@@ -62,13 +54,13 @@ public class WebSocketEndpoint extends Endpoint implements MessageHandler.Whole<
         this.session = session;
         session.addMessageHandler(this);
         logger.info("WebSocketEndpoint: Connected to server. session: "+session);
-        _onOpen.accept(session);
+        consumer.accept(new WebSocketEvent.OpenEvent(this));
     }
 
     @Override
     public void onClose(Session session, CloseReason reason) {
         logger.info("WebSocketEndpoint: Closing a WebSocket due to " + reason.getReasonPhrase());
-        _onClose.accept(reason);
+        consumer.accept(new WebSocketEvent.CloseEvent(this, reason));
     }
 
     public void start() {
@@ -84,10 +76,23 @@ public class WebSocketEndpoint extends Endpoint implements MessageHandler.Whole<
         }
     }
 
-    @Override
-    public void onMessage(String message) {
-        _onText.accept(message);
+    public void onMessage(T message) {
+        consumer.accept(createWebSocketMessageEvent(message));
     }
+
+    protected abstract WebSocketEvent createWebSocketMessageEvent(T message);
+
+    @Override
+    public void onMessage(T partialMessage, boolean last) {
+        appendBuffer(partialMessage);
+        if(last) {
+            onMessage(emptyBuffer());
+        }
+    }
+
+    protected abstract T emptyBuffer();
+
+    protected abstract void appendBuffer(T partialMessage);
 
     public static class Configurator extends ClientEndpointConfig.Configurator {
 
@@ -105,7 +110,6 @@ public class WebSocketEndpoint extends Endpoint implements MessageHandler.Whole<
                 return null;
             });
         }
-
-
     }
+
 }

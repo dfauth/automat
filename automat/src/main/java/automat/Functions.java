@@ -7,7 +7,6 @@ import io.restassured.specification.RequestSpecification;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import javax.websocket.CloseReason;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
@@ -28,16 +27,14 @@ public class Functions {
         return r;
     };
 
-    public static Function<Response, Response> subscribeTo(Resource resource, Consumer<WebSocketEndpoint> consumer, Consumer<String> messageConsumer, Consumer<CloseReason> closeConsumer) {
+    public static Function<Response, Response> subscribeTo(Resource resource, Consumer<WebSocketEvent<String>> consumer) {
         AutomationContext ctx = given();
         return r-> {
             if(r.statusCode() == 200) {
                 logger.info("subscribing to "+resource);
                 // subscribe
-                WebSocketEndpoint endPoint = new WebSocketEndpoint(given(), ctx.toUri("ws", resource));
-                endPoint.onOpen(s->consumer.accept(endPoint));
-                endPoint.onText(t->messageConsumer.accept(t));
-                endPoint.onClose(q->closeConsumer.accept(q));
+                WebSocketEndpoint endPoint = new WebSocketTextEndpoint(given(), ctx.toUri("ws", resource));
+                endPoint.onEvent((Consumer<WebSocketEvent<String>>) e -> consumer.accept(e));
                 endPoint.start();
             }
             return r;

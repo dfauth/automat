@@ -1,6 +1,6 @@
 package test;
 
-import automat.WebSocketEndpoint;
+import automat.WebSocketEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.Assert;
@@ -46,13 +46,44 @@ public class TestCase {
     public void testIdentity() throws InterruptedException {
 
         BlockingQueue<String> queue = new ArrayBlockingQueue<>(100);
-        WebSocketEndpoint[] client = new WebSocketEndpoint[1];
 
         given().environment(LOCAL).
                 identity(WATCHERBGYPSY).
                 onRequest().apply(authHandler).
                 onResponse().apply(
-                forHttpCode(403).use(loginHandler(AUTH).andThen(storeToken).andThen(subscribeTo(SUBSCRIPTION, c -> {
+                forHttpCode(403).use(loginHandler(AUTH).andThen(storeToken).andThen(subscribeTo(SUBSCRIPTION, e -> {
+                    e.accept(new WebSocketEvent.WebSocketEventHandler<String>(){
+                        @Override
+                        public void handle(WebSocketEvent.OpenEvent<String> event) {
+                            Executors.newSingleThreadExecutor().submit(()->{
+                                try {
+                                    sleep(5000);
+                                    event.endPoint().sendMessage("ping");
+                                } catch (InterruptedException e) {
+                                    logger.error(e.getMessage(), e);
+                                    throw new RuntimeException(e);
+                                }
+                            });
+                        }
+                    }).accept(new WebSocketEvent.WebSocketEventHandler<String>(){
+                        @Override
+                        public void handle(WebSocketEvent.MessageEvent<String> event) {
+                            Executors.newSingleThreadExecutor().submit(()->{
+                                try {
+                                    logger.info("received: "+event.getMessage());
+                                    queue.offer(event.getMessage());
+                                    sleep(5000);
+                                    event.endPoint().sendMessage("ping");
+                                } catch (InterruptedException e) {
+                                    logger.error(e.getMessage(), e);
+                                    throw new RuntimeException(e);
+                                }
+                            });
+                        }
+                    });
+                })))).
+
+        /**
                             client[0] = c;
                             Executors.newSingleThreadExecutor().submit(()->{
                                 try {
@@ -79,7 +110,7 @@ public class TestCase {
                         },
                         q -> queue.notifyAll()
                         )))
-        ).
+        ). */
         get(IDENTITY).then().
                 statusCode(200).
                 body("users[0].username", is(WATCHERBGYPSY.username()));
