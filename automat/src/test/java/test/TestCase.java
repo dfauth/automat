@@ -1,5 +1,6 @@
 package test;
 
+import automat.messages.HeartbeatMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.Assert;
@@ -51,13 +52,13 @@ public class TestCase {
                 forHttpCode(403).use(loginHandler(AUTH).andThen(storeToken).andThen(subscribeTo(SUBSCRIPTION, e -> {
                     e.acceptOpenEventConsumer(delay(seconds(5), (f,b)->{
                         b.sleep();
-                        f.endPoint().sendMessage("ping"); //new HeartbeatMessage("ping"));
+                        f.endPoint().sendMessage(new HeartbeatMessage("ping"), m->m.toJson());
                     })).
                     acceptMessageEventConsumer(delay(seconds(5), (f,b)->{
                         logger.info("received: "+f.getMessage());
                         queue.offer(f.getMessage());
                         b.sleep();
-                        f.endPoint().sendMessage("ping"); //new HeartbeatMessage("ping"));
+                        f.endPoint().sendMessage(new HeartbeatMessage("ping"), m->m.toJson());
                     }));
                 })))).
 

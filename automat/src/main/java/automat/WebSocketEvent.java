@@ -18,8 +18,7 @@ public abstract class WebSocketEvent<T> {
                 consumer.accept(event);
             }
         };
-        accept(handler);
-        return (E) this;
+        return accept(handler);
     }
 
     public <E extends WebSocketEvent<T>> E acceptMessageEventConsumer(Consumer<MessageEvent<T>> consumer) {
@@ -29,8 +28,7 @@ public abstract class WebSocketEvent<T> {
                 consumer.accept(event);
             }
         };
-        accept(handler);
-        return (E) this;
+        return accept(handler);
     }
 
     public <E extends WebSocketEvent<T>> E acceptCloseEventConsumer(Consumer<CloseEvent<T>> consumer) {
@@ -40,8 +38,7 @@ public abstract class WebSocketEvent<T> {
                 consumer.accept(event);
             }
         };
-        accept(handler);
-        return (E) this;
+        return accept(handler);
     }
 
     public abstract <E extends WebSocketEvent<T>> E accept(WebSocketEventHandler<T> handler);

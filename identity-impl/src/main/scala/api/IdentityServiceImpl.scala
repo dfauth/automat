@@ -109,9 +109,9 @@ class IdentityServiceImpl(
     ServerServiceCall { flow =>
       logger.info("stream: flow: "+flow+" tokenContent: "+tokenContent)
       Future.successful(flow.mapAsync(1) {
-        case "ping" => {
+        case "{\"msgType\":\"heartbeat\",\"payload\":\"ping\"}" => {
           logger.info("received ping")
-          Future.successful("pong")
+          Future.successful("{\"msgType\":\"heartbeat\",\"payload\":\"pong\"}")
         }
       })
     }

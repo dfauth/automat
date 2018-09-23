@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 
 public abstract class WebSocketEndpoint<T> extends Endpoint implements MessageHandler.Partial<T> {
@@ -34,9 +35,13 @@ public abstract class WebSocketEndpoint<T> extends Endpoint implements MessageHa
     }
 
     public void sendMessage(T t) {
+        sendMessage(t, Function.identity());
+    }
+
+    public <U> void sendMessage(U u, Function<U, T> f) {
         try {
-            logger.info("WebSocketEndpoint: sendMessage: "+t);
-            _sendMessage(t);
+            logger.info("WebSocketEndpoint: sendMessage: "+u);
+            _sendMessage(f.apply(u));
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e.getMessage(), e);
