@@ -25,7 +25,7 @@ public abstract class WebSocketEvent<T> {
 
     }
 
-    public static class OpenEvent<T> extends WebSocketEvent {
+    public static class OpenEvent<T> extends WebSocketEvent<T> {
 
         public OpenEvent(WebSocketEndpoint<T> endpoint) {
             super(endpoint);
@@ -38,7 +38,7 @@ public abstract class WebSocketEvent<T> {
         }
     }
 
-    public static class MessageEvent<T> extends WebSocketEvent {
+    public static class MessageEvent<T> extends WebSocketEvent<T> {
         private T message;
 
         public MessageEvent(WebSocketEndpoint<T> endpoint, T message) {
@@ -57,7 +57,7 @@ public abstract class WebSocketEvent<T> {
         }
     }
 
-    public static class CloseEvent<T> extends WebSocketEvent {
+    public static class CloseEvent<T> extends WebSocketEvent<T> {
         private final CloseReason reason;
 
         public CloseEvent(WebSocketEndpoint<T> endpoint, CloseReason reason) {

@@ -10,12 +10,12 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import static automat.Automat.Utils.forHttpCode;
 import static automat.Automat.given;
 import static automat.Environment.LOCAL;
 import static automat.Functions.*;
-import static java.lang.Thread.sleep;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isOneOf;
 import static test.TestIdentity.WATCHERBGYPSY;
@@ -55,62 +55,24 @@ public class TestCase {
                     e.accept(new WebSocketEvent.WebSocketEventHandler<String>(){
                         @Override
                         public void handle(WebSocketEvent.OpenEvent<String> event) {
-                            Executors.newSingleThreadExecutor().submit(()->{
-                                try {
-                                    sleep(5000);
-                                    event.endPoint().sendMessage("ping");
-                                } catch (InterruptedException e) {
-                                    logger.error(e.getMessage(), e);
-                                    throw new RuntimeException(e);
-                                }
+                            delay(5, TimeUnit.SECONDS, event, b->{
+                                b.sleep();
+                                b.event.endPoint().sendMessage("ping");
                             });
                         }
                     }).accept(new WebSocketEvent.WebSocketEventHandler<String>(){
                         @Override
                         public void handle(WebSocketEvent.MessageEvent<String> event) {
-                            Executors.newSingleThreadExecutor().submit(()->{
-                                try {
-                                    logger.info("received: "+event.getMessage());
-                                    queue.offer(event.getMessage());
-                                    sleep(5000);
-                                    event.endPoint().sendMessage("ping");
-                                } catch (InterruptedException e) {
-                                    logger.error(e.getMessage(), e);
-                                    throw new RuntimeException(e);
-                                }
+                            delay(5, TimeUnit.SECONDS, event, b->{
+                                logger.info("received: "+b.event.getMessage());
+                                queue.offer(event.getMessage());
+                                b.sleep();
+                                e.endPoint().sendMessage("ping");
                             });
                         }
                     });
                 })))).
 
-        /**
-                            client[0] = c;
-                            Executors.newSingleThreadExecutor().submit(()->{
-                                try {
-                                    sleep(5000);
-                                    client[0].sendMessage("ping");
-                                } catch (InterruptedException e) {
-                                    logger.error(e.getMessage(), e);
-                                    throw new RuntimeException(e);
-                                }
-                            });
-                },
-                        t -> {
-                            Executors.newSingleThreadExecutor().submit(()->{
-                                try {
-                                    logger.info("received: "+t);
-                                    queue.offer(t);
-                                    sleep(5000);
-                                    client[0].sendMessage("ping");
-                                } catch (InterruptedException e) {
-                                    logger.error(e.getMessage(), e);
-                                    throw new RuntimeException(e);
-                                }
-                            });
-                        },
-                        q -> queue.notifyAll()
-                        )))
-        ). */
         get(IDENTITY).then().
                 statusCode(200).
                 body("users[0].username", is(WATCHERBGYPSY.username()));
@@ -124,5 +86,30 @@ public class TestCase {
         } while(message != null && cnt < 10);
         Assert.assertNotNull(message);
 
+    }
+
+    private <E extends WebSocketEvent<T>,T> void delay(int period, TimeUnit unit, E event, Consumer<DelayBehaviour<E,T>> consumer) {
+        Executors.newSingleThreadExecutor().submit(()-> consumer.accept(new DelayBehaviour(period, unit, event)));
+    }
+
+    public static class DelayBehaviour<E extends WebSocketEvent<T>,T> {
+        private final E event;
+        private final int period;
+        private final TimeUnit unit;
+
+        public DelayBehaviour(int period, TimeUnit unit, E event) {
+            this.period = period;
+            this.unit = unit;
+            this.event = event;
+        }
+
+        void sleep() {
+            try {
+                Thread.sleep(unit.toMillis(period));
+            } catch (InterruptedException e) {
+                logger.error(e.getMessage(), e);
+                throw new RuntimeException(e);
+            }
+        }
     }
 }
