@@ -1,6 +1,5 @@
 package test;
 
-import automat.WebSocketEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.Assert;
@@ -50,16 +49,15 @@ public class TestCase {
                 onRequest().apply(authHandler).
                 onResponse().apply(
                 forHttpCode(403).use(loginHandler(AUTH).andThen(storeToken).andThen(subscribeTo(SUBSCRIPTION, e -> {
-                    e.
-                    acceptOpenEventConsumer(delay(5, TimeUnit.SECONDS, b->{
+                    e.acceptOpenEventConsumer(delay(5, TimeUnit.SECONDS, (f,b)->{
                         b.sleep();
-                        e.endPoint().sendMessage("ping");
+                        f.endPoint().sendMessage("ping");
                     })).
-                    acceptMessageEventConsumer(delay(5, TimeUnit.SECONDS, b->{
-                        logger.info("received: "+((WebSocketEvent.MessageEvent<String>)e).getMessage());
-                        queue.offer(((WebSocketEvent.MessageEvent<String>)e).getMessage());
+                    acceptMessageEventConsumer(delay(5, TimeUnit.SECONDS, (f,b)->{
+                        logger.info("received: "+f.getMessage());
+                        queue.offer(f.getMessage());
                         b.sleep();
-                        e.endPoint().sendMessage("ping");
+                        f.endPoint().sendMessage("ping");
                     }));
                 })))).
 

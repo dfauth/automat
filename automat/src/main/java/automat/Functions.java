@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
@@ -62,8 +63,8 @@ public class Functions {
         };
     }
 
-    public static Runnable delay(int period, TimeUnit unit, Consumer<DelayBehaviour> consumer) {
-        return () -> Executors.newSingleThreadExecutor().submit(()-> consumer.accept(new DelayBehaviour(period, unit)));
+    public static <E extends WebSocketEvent<T>,T> Consumer<E> delay(int period, TimeUnit unit, BiConsumer<E,DelayBehaviour> consumer) {
+        return e -> Executors.newSingleThreadExecutor().submit(()-> consumer.accept(e, new DelayBehaviour(period, unit)));
     }
 
     public static class DelayBehaviour {

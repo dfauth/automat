@@ -1,6 +1,7 @@
 package automat;
 
 import javax.websocket.CloseReason;
+import java.util.function.Consumer;
 
 public abstract class WebSocketEvent<T> {
 
@@ -10,33 +11,33 @@ public abstract class WebSocketEvent<T> {
         this.endpoint = endpoint;
     }
 
-    public <E extends WebSocketEvent<T>> E acceptOpenEventConsumer(Runnable runnable) {
+    public <E extends WebSocketEvent<T>> E acceptOpenEventConsumer(Consumer<OpenEvent<T>> consumer) {
         WebSocketEventHandler<T> handler = new WebSocketEventHandler<T>() {
             @Override
             public void handle(OpenEvent<T> event) {
-                runnable.run();
+                consumer.accept(event);
             }
         };
         accept(handler);
         return (E) this;
     }
 
-    public <E extends WebSocketEvent<T>> E acceptMessageEventConsumer(Runnable runnable) {
+    public <E extends WebSocketEvent<T>> E acceptMessageEventConsumer(Consumer<MessageEvent<T>> consumer) {
         WebSocketEventHandler<T> handler = new WebSocketEventHandler<T>() {
             @Override
             public void handle(MessageEvent<T> event) {
-                runnable.run();
+                consumer.accept(event);
             }
         };
         accept(handler);
         return (E) this;
     }
 
-    public <E extends WebSocketEvent<T>> E acceptCloseEventConsumer(Runnable runnable) {
+    public <E extends WebSocketEvent<T>> E acceptCloseEventConsumer(Consumer<CloseEvent<T>> consumer) {
         WebSocketEventHandler<T> handler = new WebSocketEventHandler<T>() {
             @Override
             public void handle(CloseEvent<T> event) {
-                runnable.run();
+                consumer.accept(event);
             }
         };
         accept(handler);
