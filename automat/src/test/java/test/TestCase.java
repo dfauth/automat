@@ -51,13 +51,13 @@ public class TestCase {
                 forHttpCode(403).use(loginHandler(AUTH).andThen(storeToken).andThen(subscribeTo(SUBSCRIPTION, e -> {
                     e.acceptOpenEventConsumer(delay(seconds(5), (f,b)->{
                         b.sleep();
-                        f.endPoint().sendMessage("ping");
+                        f.endPoint().sendMessage("ping"); //new HeartbeatMessage("ping"));
                     })).
                     acceptMessageEventConsumer(delay(seconds(5), (f,b)->{
                         logger.info("received: "+f.getMessage());
                         queue.offer(f.getMessage());
                         b.sleep();
-                        f.endPoint().sendMessage("ping");
+                        f.endPoint().sendMessage("ping"); //new HeartbeatMessage("ping"));
                     }));
                 })))).
 
