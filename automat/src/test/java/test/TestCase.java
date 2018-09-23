@@ -8,9 +8,7 @@ import org.testng.annotations.Test;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 import static automat.Automat.Utils.forHttpCode;
 import static automat.Automat.given;
@@ -57,14 +55,14 @@ public class TestCase {
                         public void handle(WebSocketEvent.OpenEvent<String> event) {
                             delay(5, TimeUnit.SECONDS, event, b->{
                                 b.sleep();
-                                b.event.endPoint().sendMessage("ping");
+                                b.event().endPoint().sendMessage("ping");
                             });
                         }
                     }).accept(new WebSocketEvent.WebSocketEventHandler<String>(){
                         @Override
                         public void handle(WebSocketEvent.MessageEvent<String> event) {
                             delay(5, TimeUnit.SECONDS, event, b->{
-                                logger.info("received: "+b.event.getMessage());
+                                logger.info("received: "+b.event().getMessage());
                                 queue.offer(event.getMessage());
                                 b.sleep();
                                 e.endPoint().sendMessage("ping");
@@ -88,28 +86,4 @@ public class TestCase {
 
     }
 
-    private <E extends WebSocketEvent<T>,T> void delay(int period, TimeUnit unit, E event, Consumer<DelayBehaviour<E,T>> consumer) {
-        Executors.newSingleThreadExecutor().submit(()-> consumer.accept(new DelayBehaviour(period, unit, event)));
-    }
-
-    public static class DelayBehaviour<E extends WebSocketEvent<T>,T> {
-        private final E event;
-        private final int period;
-        private final TimeUnit unit;
-
-        public DelayBehaviour(int period, TimeUnit unit, E event) {
-            this.period = period;
-            this.unit = unit;
-            this.event = event;
-        }
-
-        void sleep() {
-            try {
-                Thread.sleep(unit.toMillis(period));
-            } catch (InterruptedException e) {
-                logger.error(e.getMessage(), e);
-                throw new RuntimeException(e);
-            }
-        }
-    }
 }

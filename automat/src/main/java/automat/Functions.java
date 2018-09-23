@@ -7,6 +7,8 @@ import io.restassured.specification.RequestSpecification;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
@@ -60,4 +62,32 @@ public class Functions {
         };
     }
 
+    public static <E extends WebSocketEvent<T>, T> void delay(int period, TimeUnit unit, E event, Consumer<DelayBehaviour<E, T>> consumer) {
+        Executors.newSingleThreadExecutor().submit(()-> consumer.accept(new DelayBehaviour(period, unit, event)));
+    }
+
+    public static class DelayBehaviour<E extends WebSocketEvent<T>,T> {
+        private final E event;
+        private final int period;
+        private final TimeUnit unit;
+
+        public DelayBehaviour(int period, TimeUnit unit, E event) {
+            this.period = period;
+            this.unit = unit;
+            this.event = event;
+        }
+
+        public void sleep() {
+            try {
+                Thread.sleep(unit.toMillis(period));
+            } catch (InterruptedException e) {
+                logger.error(e.getMessage(), e);
+                throw new RuntimeException(e);
+            }
+        }
+
+        public E event() {
+            return event;
+        }
+    }
 }

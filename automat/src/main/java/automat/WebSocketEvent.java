@@ -10,7 +10,7 @@ public abstract class WebSocketEvent<T> {
         this.endpoint = endpoint;
     }
 
-    public abstract WebSocketEvent<T> accept(WebSocketEventHandler handler);
+    public abstract WebSocketEvent<T> accept(WebSocketEventHandler<T> handler);
 
     public WebSocketEndpoint<T> endPoint() {
         return endpoint;
@@ -32,7 +32,7 @@ public abstract class WebSocketEvent<T> {
         }
 
         @Override
-        public WebSocketEvent<T> accept(WebSocketEventHandler handler) {
+        public WebSocketEvent<T> accept(WebSocketEventHandler<T> handler) {
             handler.handle(this);
             return this;
         }
@@ -47,7 +47,7 @@ public abstract class WebSocketEvent<T> {
         }
 
         @Override
-        public WebSocketEvent<T> accept(WebSocketEventHandler handler) {
+        public WebSocketEvent<T> accept(WebSocketEventHandler<T> handler) {
             handler.handle(this);
             return this;
         }
@@ -66,7 +66,7 @@ public abstract class WebSocketEvent<T> {
         }
 
         @Override
-        public WebSocketEvent<T> accept(WebSocketEventHandler handler) {
+        public WebSocketEvent<T> accept(WebSocketEventHandler<T> handler) {
             handler.handle(this);
             return this;
         }
