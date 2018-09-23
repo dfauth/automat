@@ -62,19 +62,17 @@ public class Functions {
         };
     }
 
-    public static <E extends WebSocketEvent<T>, T> void delay(int period, TimeUnit unit, E event, Consumer<DelayBehaviour<E, T>> consumer) {
-        Executors.newSingleThreadExecutor().submit(()-> consumer.accept(new DelayBehaviour(period, unit, event)));
+    public static Runnable delay(int period, TimeUnit unit, Consumer<DelayBehaviour> consumer) {
+        return () -> Executors.newSingleThreadExecutor().submit(()-> consumer.accept(new DelayBehaviour(period, unit)));
     }
 
-    public static class DelayBehaviour<E extends WebSocketEvent<T>,T> {
-        private final E event;
+    public static class DelayBehaviour {
         private final int period;
         private final TimeUnit unit;
 
-        public DelayBehaviour(int period, TimeUnit unit, E event) {
+        public DelayBehaviour(int period, TimeUnit unit) {
             this.period = period;
             this.unit = unit;
-            this.event = event;
         }
 
         public void sleep() {
@@ -84,10 +82,6 @@ public class Functions {
                 logger.error(e.getMessage(), e);
                 throw new RuntimeException(e);
             }
-        }
-
-        public E event() {
-            return event;
         }
     }
 }

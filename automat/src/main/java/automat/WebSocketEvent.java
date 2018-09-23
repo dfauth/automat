@@ -10,7 +10,40 @@ public abstract class WebSocketEvent<T> {
         this.endpoint = endpoint;
     }
 
-    public abstract WebSocketEvent<T> accept(WebSocketEventHandler<T> handler);
+    public <E extends WebSocketEvent<T>> E acceptOpenEventConsumer(Runnable runnable) {
+        WebSocketEventHandler<T> handler = new WebSocketEventHandler<T>() {
+            @Override
+            public void handle(OpenEvent<T> event) {
+                runnable.run();
+            }
+        };
+        accept(handler);
+        return (E) this;
+    }
+
+    public <E extends WebSocketEvent<T>> E acceptMessageEventConsumer(Runnable runnable) {
+        WebSocketEventHandler<T> handler = new WebSocketEventHandler<T>() {
+            @Override
+            public void handle(MessageEvent<T> event) {
+                runnable.run();
+            }
+        };
+        accept(handler);
+        return (E) this;
+    }
+
+    public <E extends WebSocketEvent<T>> E acceptCloseEventConsumer(Runnable runnable) {
+        WebSocketEventHandler<T> handler = new WebSocketEventHandler<T>() {
+            @Override
+            public void handle(CloseEvent<T> event) {
+                runnable.run();
+            }
+        };
+        accept(handler);
+        return (E) this;
+    }
+
+    public abstract <E extends WebSocketEvent<T>> E accept(WebSocketEventHandler<T> handler);
 
     public WebSocketEndpoint<T> endPoint() {
         return endpoint;
@@ -32,9 +65,9 @@ public abstract class WebSocketEvent<T> {
         }
 
         @Override
-        public WebSocketEvent<T> accept(WebSocketEventHandler<T> handler) {
+        public <E extends WebSocketEvent<T>> E accept(WebSocketEventHandler<T> handler) {
             handler.handle(this);
-            return this;
+            return (E) this;
         }
     }
 
@@ -47,9 +80,9 @@ public abstract class WebSocketEvent<T> {
         }
 
         @Override
-        public WebSocketEvent<T> accept(WebSocketEventHandler<T> handler) {
+        public <E extends WebSocketEvent<T>> E accept(WebSocketEventHandler<T> handler) {
             handler.handle(this);
-            return this;
+            return (E) this;
         }
 
         public T getMessage() {
@@ -66,9 +99,9 @@ public abstract class WebSocketEvent<T> {
         }
 
         @Override
-        public WebSocketEvent<T> accept(WebSocketEventHandler<T> handler) {
+        public <E extends WebSocketEvent<T>> E accept(WebSocketEventHandler<T> handler) {
             handler.handle(this);
-            return this;
+            return (E) this;
         }
     }
 }

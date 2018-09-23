@@ -50,25 +50,17 @@ public class TestCase {
                 onRequest().apply(authHandler).
                 onResponse().apply(
                 forHttpCode(403).use(loginHandler(AUTH).andThen(storeToken).andThen(subscribeTo(SUBSCRIPTION, e -> {
-                    e.accept(new WebSocketEvent.WebSocketEventHandler<String>(){
-                        @Override
-                        public void handle(WebSocketEvent.OpenEvent<String> event) {
-                            delay(5, TimeUnit.SECONDS, event, b->{
-                                b.sleep();
-                                b.event().endPoint().sendMessage("ping");
-                            });
-                        }
-                    }).accept(new WebSocketEvent.WebSocketEventHandler<String>(){
-                        @Override
-                        public void handle(WebSocketEvent.MessageEvent<String> event) {
-                            delay(5, TimeUnit.SECONDS, event, b->{
-                                logger.info("received: "+b.event().getMessage());
-                                queue.offer(event.getMessage());
-                                b.sleep();
-                                e.endPoint().sendMessage("ping");
-                            });
-                        }
-                    });
+                    e.
+                    acceptOpenEventConsumer(delay(5, TimeUnit.SECONDS, b->{
+                        b.sleep();
+                        e.endPoint().sendMessage("ping");
+                    })).
+                    acceptMessageEventConsumer(delay(5, TimeUnit.SECONDS, b->{
+                        logger.info("received: "+((WebSocketEvent.MessageEvent<String>)e).getMessage());
+                        queue.offer(((WebSocketEvent.MessageEvent<String>)e).getMessage());
+                        b.sleep();
+                        e.endPoint().sendMessage("ping");
+                    }));
                 })))).
 
         get(IDENTITY).then().
