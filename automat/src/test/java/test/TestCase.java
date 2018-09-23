@@ -49,11 +49,11 @@ public class TestCase {
                 onRequest().apply(authHandler).
                 onResponse().apply(
                 forHttpCode(403).use(loginHandler(AUTH).andThen(storeToken).andThen(subscribeTo(SUBSCRIPTION, e -> {
-                    e.acceptOpenEventConsumer(delay(5, TimeUnit.SECONDS, (f,b)->{
+                    e.acceptOpenEventConsumer(delay(seconds(5), (f,b)->{
                         b.sleep();
                         f.endPoint().sendMessage("ping");
                     })).
-                    acceptMessageEventConsumer(delay(5, TimeUnit.SECONDS, (f,b)->{
+                    acceptMessageEventConsumer(delay(seconds(5), (f,b)->{
                         logger.info("received: "+f.getMessage());
                         queue.offer(f.getMessage());
                         b.sleep();

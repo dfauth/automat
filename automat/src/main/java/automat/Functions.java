@@ -9,10 +9,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.UnaryOperator;
+import java.util.function.*;
 
 import static automat.Automat.given;
 
@@ -63,26 +60,33 @@ public class Functions {
         };
     }
 
-    public static <E extends WebSocketEvent<T>,T> Consumer<E> delay(int period, TimeUnit unit, BiConsumer<E,DelayBehaviour> consumer) {
-        return e -> Executors.newSingleThreadExecutor().submit(()-> consumer.accept(e, new DelayBehaviour(period, unit)));
+    public static <E extends WebSocketEvent<T>,T> Consumer<E> delay(Supplier<Long> duration, BiConsumer<E,DelayBehaviour> consumer) {
+        return e -> Executors.newSingleThreadExecutor().submit(()-> consumer.accept(e, new DelayBehaviour(duration)));
     }
 
     public static class DelayBehaviour {
-        private final int period;
-        private final TimeUnit unit;
 
-        public DelayBehaviour(int period, TimeUnit unit) {
-            this.period = period;
-            this.unit = unit;
+        private final Supplier<Long> duration;
+
+        public DelayBehaviour(Supplier<Long> duration) {
+            this.duration = duration;
         }
 
         public void sleep() {
             try {
-                Thread.sleep(unit.toMillis(period));
+                Thread.sleep(duration.get());
             } catch (InterruptedException e) {
                 logger.error(e.getMessage(), e);
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    public static Supplier<Long> seconds(int n) {
+        return timeUnit(n, TimeUnit.SECONDS);
+    }
+
+    public static Supplier<Long> timeUnit(int n, TimeUnit unit) {
+        return ()-> unit.toMillis(n);
     }
 }
