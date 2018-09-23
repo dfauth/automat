@@ -34,6 +34,10 @@ public abstract class WebSocketEndpoint<T> extends Endpoint implements MessageHa
         this.consumer = consumer;
     }
 
+    public <U> void onEvent(Consumer<U> consumer, Function<WebSocketEvent<T>,U> f) {
+        this.consumer = t -> consumer.accept(f.apply(t));
+    }
+
     public void sendMessage(T t) {
         sendMessage(t, Function.identity());
     }
