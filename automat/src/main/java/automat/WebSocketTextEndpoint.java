@@ -1,5 +1,7 @@
 package automat;
 
+import automat.events.MessageEvent;
+
 import java.io.IOException;
 import java.io.StringWriter;
 import java.net.URI;
@@ -20,7 +22,7 @@ public class WebSocketTextEndpoint extends WebSocketEndpoint<String> {
 
     @Override
     protected WebSocketEvent createWebSocketMessageEvent(String message) {
-        return new WebSocketEvent.MessageEvent<>(this, message);
+        return new MessageEvent<>(this, message);
     }
 
     @Override

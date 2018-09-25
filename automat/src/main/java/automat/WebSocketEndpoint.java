@@ -1,5 +1,8 @@
 package automat;
 
+import automat.events.CloseEvent;
+import automat.events.MessageEvent;
+import automat.events.OpenEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -34,18 +37,36 @@ public abstract class WebSocketEndpoint<T> extends Endpoint implements MessageHa
         this.consumer = consumer;
     }
 
-    public <U> void onEvent(Consumer<U> consumer, Function<WebSocketEvent<T>,U> f) {
-        this.consumer = t -> consumer.accept(f.apply(t));
-    }
+    public <U> void onEvent(Consumer<WebSocketEvent<U>> consumer, Function<T,U> f) {
+        WebSocketEventHandler<T> handler = new WebSocketEventHandler<T>() {
+            @Override
+            public void handle(OpenEvent event) {
+                consumer.accept(event);
+            }
 
-    public void sendMessage(T t) {
-        sendMessage(t, Function.identity());
+            @Override
+            public void handle(MessageEvent<T> event) {
+                consumer.accept(new MessageEvent(WebSocketEndpoint.this,
+                        f.apply(event.getMessage())
+                ));
+            }
+
+            @Override
+            public void handle(CloseEvent event) {
+                consumer.accept(event);
+            }
+        };
+        this.consumer = t -> t.accept(handler);
     }
 
     public <U> void sendMessage(U u, Function<U, T> f) {
+        sendMessage(f.apply(u));
+    }
+
+    public void sendMessage(T t) {
         try {
-            logger.info("WebSocketEndpoint: sendMessage: "+u);
-            _sendMessage(f.apply(u));
+            logger.info("WebSocketEndpoint: sendMessage: "+t);
+            _sendMessage(t);
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e.getMessage(), e);
@@ -63,13 +84,13 @@ public abstract class WebSocketEndpoint<T> extends Endpoint implements MessageHa
         this.session = session;
         session.addMessageHandler(this);
         logger.info("WebSocketEndpoint: Connected to server. session: "+session);
-        consumer.accept(new WebSocketEvent.OpenEvent(this));
+        consumer.accept(new OpenEvent(this));
     }
 
     @Override
     public void onClose(Session session, CloseReason reason) {
         logger.info("WebSocketEndpoint: Closing a WebSocket due to " + reason.getReasonPhrase());
-        consumer.accept(new WebSocketEvent.CloseEvent(this, reason));
+        consumer.accept(new CloseEvent(this, reason));
     }
 
     public void start() {
