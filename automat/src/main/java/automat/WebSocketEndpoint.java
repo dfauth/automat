@@ -1,8 +1,5 @@
 package automat;
 
-import automat.events.CloseEvent;
-import automat.events.MessageEvent;
-import automat.events.OpenEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -13,54 +10,25 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 
 public abstract class WebSocketEndpoint<T> extends Endpoint implements MessageHandler.Partial<T> {
 
     private static final Logger logger = LogManager.getLogger(WebSocketEndpoint.class);
 
-    private Consumer<WebSocketEvent<T>> consumer = e -> {};
-    private final AutomationContext ctx;
+    private Consumer<WebSocketEvent> consumer = e -> {};
     private final ClientEndpointConfig.Builder builder;
     private final URI uri;
     protected Session session;
 
     public WebSocketEndpoint(AutomationContext ctx, URI uri) {
-        this.ctx = ctx;
         this.uri = uri;
         this.builder = ClientEndpointConfig.Builder.create();
         this.builder.configurator(new Configurator(ctx));
     }
 
-    public void onEvent(Consumer<WebSocketEvent<T>> consumer) {
+    public void onEvent(Consumer<WebSocketEvent> consumer) {
         this.consumer = consumer;
-    }
-
-    public <U> void onEvent(Consumer<WebSocketEvent<U>> consumer, Function<T,U> f) {
-        WebSocketEventHandler<T> handler = new WebSocketEventHandler<T>() {
-            @Override
-            public void handle(OpenEvent event) {
-                consumer.accept(event);
-            }
-
-            @Override
-            public void handle(MessageEvent<T> event) {
-                consumer.accept(new MessageEvent(WebSocketEndpoint.this,
-                        f.apply(event.getMessage())
-                ));
-            }
-
-            @Override
-            public void handle(CloseEvent event) {
-                consumer.accept(event);
-            }
-        };
-        this.consumer = t -> t.accept(handler);
-    }
-
-    public <U> void sendMessage(U u, Function<U, T> f) {
-        sendMessage(f.apply(u));
     }
 
     public void sendMessage(T t) {
@@ -84,13 +52,13 @@ public abstract class WebSocketEndpoint<T> extends Endpoint implements MessageHa
         this.session = session;
         session.addMessageHandler(this);
         logger.info("WebSocketEndpoint: Connected to server. session: "+session);
-        consumer.accept(new OpenEvent(this));
+        consumer.accept(createOpenEvent());
     }
 
     @Override
     public void onClose(Session session, CloseReason reason) {
         logger.info("WebSocketEndpoint: Closing a WebSocket due to " + reason.getReasonPhrase());
-        consumer.accept(new CloseEvent(this, reason));
+        consumer.accept(createCloseEvent(reason));
     }
 
     public void start() {
@@ -107,10 +75,12 @@ public abstract class WebSocketEndpoint<T> extends Endpoint implements MessageHa
     }
 
     public void onMessage(T message) {
-        consumer.accept(createWebSocketMessageEvent(message));
+        consumer.accept(createMessageEvent(message));
     }
 
-    protected abstract WebSocketEvent createWebSocketMessageEvent(T message);
+    protected abstract WebSocketEvent createOpenEvent();
+    protected abstract WebSocketEvent createMessageEvent(T message);
+    protected abstract WebSocketEvent createCloseEvent(CloseReason reason);
 
     @Override
     public void onMessage(T partialMessage, boolean last) {

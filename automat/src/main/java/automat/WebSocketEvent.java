@@ -6,47 +6,47 @@ import automat.events.OpenEvent;
 
 import java.util.function.Consumer;
 
-public abstract class WebSocketEvent<T> {
+public abstract class WebSocketEvent {
 
-    private final WebSocketEndpoint<T> endpoint;
+    private final WebSocketTextEndpoint endpoint;
 
-    public WebSocketEvent(WebSocketEndpoint<T> endpoint) {
+    public WebSocketEvent(WebSocketTextEndpoint endpoint) {
         this.endpoint = endpoint;
     }
 
-    public <E extends WebSocketEvent<T>> E acceptOpenEventConsumer(Consumer<OpenEvent<T>> consumer) {
-        WebSocketEventHandler<T> handler = new WebSocketEventHandler<T>() {
+    public <E extends WebSocketEvent> E acceptOpenEventConsumer(Consumer<OpenEvent> consumer) {
+        WebSocketEventHandler handler = new WebSocketEventHandler() {
             @Override
-            public void handle(OpenEvent<T> event) {
+            public void handle(OpenEvent event) {
                 consumer.accept(event);
             }
         };
         return accept(handler);
     }
 
-    public <E extends WebSocketEvent<T>> E acceptMessageEventConsumer(Consumer<MessageEvent<T>> consumer) {
-        WebSocketEventHandler<T> handler = new WebSocketEventHandler<T>() {
+    public <E extends WebSocketEvent,T> E acceptMessageEventConsumer(Consumer<MessageEvent<T>> consumer) {
+        WebSocketEventHandler handler = new WebSocketEventHandler() {
             @Override
-            public void handle(MessageEvent<T> event) {
+            public void handle(MessageEvent event) {
                 consumer.accept(event);
             }
         };
         return accept(handler);
     }
 
-    public <E extends WebSocketEvent<T>> E acceptCloseEventConsumer(Consumer<CloseEvent<T>> consumer) {
-        WebSocketEventHandler<T> handler = new WebSocketEventHandler<T>() {
+    public <E extends WebSocketEvent> E acceptCloseEventConsumer(Consumer<CloseEvent> consumer) {
+        WebSocketEventHandler handler = new WebSocketEventHandler() {
             @Override
-            public void handle(CloseEvent<T> event) {
+            public void handle(CloseEvent event) {
                 consumer.accept(event);
             }
         };
         return accept(handler);
     }
 
-    public abstract <E extends WebSocketEvent<T>> E accept(WebSocketEventHandler<T> handler);
+    public abstract <E extends WebSocketEvent> E accept(WebSocketEventHandler handler);
 
-    public WebSocketEndpoint<T> endPoint() {
+    public WebSocketTextEndpoint endPoint() {
         return endpoint;
     }
 

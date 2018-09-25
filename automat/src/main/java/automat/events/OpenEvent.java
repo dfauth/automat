@@ -1,18 +1,18 @@
 package automat.events;
 
-import automat.WebSocketEndpoint;
 import automat.WebSocketEvent;
 import automat.WebSocketEventHandler;
+import automat.WebSocketTextEndpoint;
 
 
-public class OpenEvent<T> extends WebSocketEvent<T> {
+public class OpenEvent extends WebSocketEvent {
 
-    public OpenEvent(WebSocketEndpoint<T> endpoint) {
+    public OpenEvent(WebSocketTextEndpoint endpoint) {
         super(endpoint);
     }
 
     @Override
-    public <E extends WebSocketEvent<T>> E accept(WebSocketEventHandler<T> handler) {
+    public <E extends WebSocketEvent> E accept(WebSocketEventHandler handler) {
         handler.handle(this);
         return (E) this;
     }

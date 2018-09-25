@@ -43,7 +43,7 @@ public class WebSocketEndpointTest {
         };
     }
 
-    private Consumer<WebSocketEvent<String>> onOpen() {
+    private Consumer<WebSocketEvent> onOpen() {
         return event -> {
             Executors.newSingleThreadExecutor().submit(()->{
                 try {

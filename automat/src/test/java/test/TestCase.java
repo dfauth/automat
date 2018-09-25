@@ -1,5 +1,6 @@
 package test;
 
+import automat.events.MessageEvent;
 import automat.messages.HeartbeatMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -9,6 +10,7 @@ import org.testng.annotations.Test;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 
 import static automat.Automat.Utils.forHttpCode;
 import static automat.Automat.given;
@@ -50,15 +52,15 @@ public class TestCase {
                 onRequest().apply(authHandler).
                 onResponse().apply(
                 forHttpCode(403).use(loginHandler(AUTH).andThen(storeToken).andThen(subscribeTo(SUBSCRIPTION, e -> {
-                    e.acceptOpenEventConsumer(delay(seconds(5), (f,b)->{
+                    e.acceptOpenEventConsumer(delay(seconds(5), (f, b)->{
                         b.sleep();
-                        f.endPoint().sendMessage(new HeartbeatMessage("ping"), m->m.toJson());
+                        f.endPoint().sendMessage(new HeartbeatMessage("ping").toJson());
                     })).
-                    acceptMessageEventConsumer(delay(seconds(5), (f,b)->{
+                    acceptMessageEventConsumer(delay(seconds(5), (BiConsumer<MessageEvent<String>, DelayBehaviour>)(f, b)->{
                         logger.info("received: "+f.getMessage());
                         queue.offer(f.getMessage());
                         b.sleep();
-                        f.endPoint().sendMessage(new HeartbeatMessage("ping"), m->m.toJson());
+                        f.endPoint().sendMessage(new HeartbeatMessage("ping").toJson());
                     }));
                 })))).
 

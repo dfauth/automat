@@ -1,7 +1,10 @@
 package automat;
 
+import automat.events.CloseEvent;
 import automat.events.MessageEvent;
+import automat.events.OpenEvent;
 
+import javax.websocket.CloseReason;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.net.URI;
@@ -21,7 +24,17 @@ public class WebSocketTextEndpoint extends WebSocketEndpoint<String> {
     }
 
     @Override
-    protected WebSocketEvent createWebSocketMessageEvent(String message) {
+    protected WebSocketEvent createOpenEvent() {
+        return new OpenEvent(this);
+    }
+
+    @Override
+    protected WebSocketEvent createCloseEvent(CloseReason reason) {
+        return new CloseEvent(this, reason);
+    }
+
+    @Override
+    protected WebSocketEvent createMessageEvent(String message) {
         return new MessageEvent<>(this, message);
     }
 
