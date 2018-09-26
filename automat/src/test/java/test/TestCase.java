@@ -74,13 +74,13 @@ public class TestCase {
                           acceptMessageEventConsumer(
                             delay(
                               seconds(5),
-                                (BiConsumer<MessageEvent<String>,DelayBehaviour>) (e2, b) -> {
+                                (BiConsumer<MessageEvent<WebSocketMessage>,DelayBehaviour>) (e2, b) -> {
                                   logger.info("received: " + e2.getMessage());
-                                  queue.offer(WebSocketMessage.from(e2.getMessage()));
+                                  queue.offer(e2.getMessage());
                                   b.sleep();
                                   e2.endPoint().sendMessage(new HeartbeatMessage("ping").toJson());
-                                }
-//                                    (String s)->WebSocketMessage.from(s)
+                                },
+                                (String s)->WebSocketMessage.from(s)
                             )
                           );
                         } // e->
