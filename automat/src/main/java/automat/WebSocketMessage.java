@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.function.Supplier;
 
-public abstract class WebSocketMessage<T> {
+public abstract class WebSocketMessage {
 
     private static final Logger logger = LogManager.getLogger(WebSocketMessage.class);
 
@@ -52,7 +52,7 @@ public abstract class WebSocketMessage<T> {
         return this.getClass().getTypeName()+"["+type+", "+payload+"]";
     }
 
-    protected String envelope(T payload) {
+    protected <T> String envelope(T payload) {
         try {
             ObjectMapper mapper = new ObjectMapper();
             return mapper.writeValueAsString(type.apply(payload));
@@ -62,7 +62,7 @@ public abstract class WebSocketMessage<T> {
         }
     }
 
-    public static <T extends WebSocketMessage<T>> T from(String jsonString) {
+    public static WebSocketMessage from(String jsonString) {
         try {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode jsonNode = mapper.readValue(jsonString, JsonNode.class);
@@ -70,7 +70,7 @@ public abstract class WebSocketMessage<T> {
             JsonNode payload = jsonNode.get("payload");
             WebSocketMessageType msgType = WebSocketMessageType.valueOf(msgTypeString.toUpperCase());
             Class<? extends WebSocketMessage> clazz = msgType.newInstance().getClass();
-            return mapper.readValue(jsonString, (Class<T>) clazz);
+            return mapper.readValue(jsonString, (Class<? extends WebSocketMessage>) clazz);
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
@@ -94,10 +94,10 @@ public abstract class WebSocketMessage<T> {
         HEARTBEAT("heartbeat", () -> new HeartbeatMessage());
 
         private String msgType;
-        private Supplier<? extends WebSocketMessage<?>> supplier;
+        private Supplier<? extends WebSocketMessage> supplier;
 
 
-        <E extends WebSocketMessage<T>, T> WebSocketMessageType(String msgType, Supplier<? extends WebSocketMessage<T>> supplier) {
+        <E extends WebSocketMessage, T> WebSocketMessageType(String msgType, Supplier<? extends WebSocketMessage> supplier) {
             this.msgType = msgType;
             this.supplier = supplier;
         }
@@ -106,7 +106,7 @@ public abstract class WebSocketMessage<T> {
             return MapBuilder.key("msgType").value(msgType).key("payload").value(payload).build();
         }
 
-        public WebSocketMessage<?> newInstance() {
+        public WebSocketMessage newInstance() {
             return supplier.get();
         }
     }

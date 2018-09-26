@@ -1,5 +1,6 @@
 package test;
 
+import automat.WebSocketMessage;
 import automat.events.MessageEvent;
 import automat.messages.HeartbeatMessage;
 import org.apache.logging.log4j.LogManager;
@@ -45,30 +46,54 @@ public class TestCase {
     @Test(groups = "identity")
     public void testIdentity() throws InterruptedException {
 
-        BlockingQueue<String> queue = new ArrayBlockingQueue<>(100);
+        BlockingQueue<WebSocketMessage> queue = new ArrayBlockingQueue<>(100);
 
         given().environment(LOCAL).
                 identity(WATCHERBGYPSY).
-                onRequest().apply(authHandler).
-                onResponse().apply(
-                forHttpCode(403).use(loginHandler(AUTH).andThen(storeToken).andThen(subscribeTo(SUBSCRIPTION, e -> {
-                    e.acceptOpenEventConsumer(delay(seconds(5), (f, b)->{
-                        b.sleep();
-                        f.endPoint().sendMessage(new HeartbeatMessage("ping").toJson());
-                    })).
-                    acceptMessageEventConsumer(delay(seconds(5), (BiConsumer<MessageEvent<String>, DelayBehaviour>)(f, b)->{
-                        logger.info("received: "+f.getMessage());
-                        queue.offer(f.getMessage());
-                        b.sleep();
-                        f.endPoint().sendMessage(new HeartbeatMessage("ping").toJson());
-                    }));
-                })))).
+                onRequest().
+                apply(authHandler).
+                onResponse().
+                apply(
+                  forHttpCode(403).
+                  use(
+                    loginHandler(AUTH).
+                    andThen(storeToken).
+                    andThen(
+                      subscribeTo(
+                        SUBSCRIPTION,
+                        e -> {
+                          e.acceptOpenEventConsumer(
+                            delay(
+                              seconds(5),
+                              (e1, b)-> {
+                                b.sleep();
+                                e1.endPoint().sendMessage(new HeartbeatMessage("ping").toJson());
+                              }
+                            )
+                          ).
+                          acceptMessageEventConsumer(
+                            delay(
+                              seconds(5),
+                                (BiConsumer<MessageEvent<String>,DelayBehaviour>) (e2, b) -> {
+                                  logger.info("received: " + e2.getMessage());
+                                  queue.offer(WebSocketMessage.from(e2.getMessage()));
+                                  b.sleep();
+                                  e2.endPoint().sendMessage(new HeartbeatMessage("ping").toJson());
+                                }
+//                                    (String s)->WebSocketMessage.from(s)
+                            )
+                          );
+                        } // e->
+                      )// subscribeTo
+                    )
+                  )
+                ).
 
         get(IDENTITY).then().
                 statusCode(200).
                 body("users[0].username", is(WATCHERBGYPSY.username()));
 
-        String message = null;
+        WebSocketMessage message = null;
         int cnt = 0;
         do {
             message = queue.poll(10, TimeUnit.SECONDS);

@@ -2,7 +2,7 @@ package automat.messages;
 
 import automat.WebSocketMessage;
 
-public class HeartbeatMessage extends WebSocketMessage<String> {
+public class HeartbeatMessage extends WebSocketMessage {
 
 
     public HeartbeatMessage() {
