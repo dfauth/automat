@@ -111,7 +111,15 @@ class IdentityServiceImpl(
       Future.successful(flow.mapAsync(1) {
         case "{\"msgType\":\"heartbeat\",\"payload\":\"ping\"}" => {
           logger.info("received ping")
-          Future.successful("{\"msgType\":\"heartbeat\",\"payload\":\"pong\"}")
+          Future{
+            Thread.sleep(5000)
+            if(math.random < 0.25) {
+              "{\"msgType\":\"something\",\"payload\":\"WOOZ\"}"
+            } else {
+              "{\"msgType\":\"heartbeat\",\"payload\":\"pong\"}"
+            }
+          }
+//          Future.successful("{\"msgType\":\"heartbeat\",\"payload\":\"pong\"}")
         }
       })
     }

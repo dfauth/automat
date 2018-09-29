@@ -1,6 +1,7 @@
 package automat;
 
 import automat.messages.HeartbeatMessage;
+import automat.messages.UnknownMessage;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 public abstract class WebSocketMessage {
@@ -25,7 +27,11 @@ public abstract class WebSocketMessage {
         this.setMsgType(type);
     }
 
-    public abstract String toJson();
+    public String toJson() {
+        return envelope(payload);
+    }
+
+    public abstract boolean isApplicationMessage();
 
     @Override
     public int hashCode() {
@@ -63,17 +69,22 @@ public abstract class WebSocketMessage {
     }
 
     public static WebSocketMessage from(String jsonString) {
+        String msgTypeString = null;
+        JsonNode payload = null;
         try {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode jsonNode = mapper.readValue(jsonString, JsonNode.class);
-            String msgTypeString = jsonNode.get("msgType").asText();
-            JsonNode payload = jsonNode.get("payload");
+            msgTypeString = jsonNode.get("msgType").asText();
+            payload = jsonNode.get("payload");
             WebSocketMessageType msgType = WebSocketMessageType.valueOf(msgTypeString.toUpperCase());
             Class<? extends WebSocketMessage> clazz = msgType.newInstance().getClass();
             return mapper.readValue(jsonString, (Class<? extends WebSocketMessage>) clazz);
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
+        } catch (IllegalArgumentException e) {
+            logger.error(e.getMessage(), e);
+            return new UnknownMessage(msgTypeString, payload.asText());
         }
     }
 
@@ -89,9 +100,12 @@ public abstract class WebSocketMessage {
         setMsgType(WebSocketMessageType.valueOf(type.toUpperCase()));
     }
 
+    public abstract <T> Optional<T> accept(WebSocketMessageHandler<T> handler);
+
     public enum WebSocketMessageType {
 
-        HEARTBEAT("heartbeat", () -> new HeartbeatMessage());
+        HEARTBEAT("heartbeat", () -> new HeartbeatMessage()),
+        UNKNOWN("unknown", () -> new UnknownMessage());
 
         private String msgType;
         private Supplier<? extends WebSocketMessage> supplier;

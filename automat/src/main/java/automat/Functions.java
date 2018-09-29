@@ -1,5 +1,8 @@
 package automat;
 
+import automat.events.MessageEvent;
+import automat.events.OpenEvent;
+import automat.messages.HeartbeatMessage;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import io.restassured.specification.FilterableRequestSpecification;
@@ -9,10 +12,9 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.*;
 import java.util.function.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -35,7 +37,7 @@ public class Functions {
         return r;
     };
 
-    public static Function<Response, Response> subscribeTo(Resource resource, Consumer<WebSocketEvent> consumer) {
+    public static Function<Response, Response> subscribeTo(Resource resource, Consumer<WebSocketEvent<String>> consumer) {
         AutomationContext ctx = given();
         return r-> {
             if(r.statusCode() == 200) {
@@ -68,31 +70,39 @@ public class Functions {
         };
     }
 
-    public static <T,U> Consumer<? extends WebSocketEvent<T>> delay(Supplier<Long> duration, BiConsumer<? extends WebSocketEvent<T>,DelayBehaviour> consumer) {
-        return delay(duration, consumer, Function.identity());
-    }
+    public static Consumer<WebSocketEvent> heartbeat = e -> e.endPoint().sendMessage(new HeartbeatMessage("ping").toJson());
 
-    public static <T,U> Consumer<? extends WebSocketEvent<T>> delay(Supplier<Long> duration, BiConsumer<? extends WebSocketEvent<U>,DelayBehaviour> consumer, Function<T, U> f) {
-        return e -> executor.submit(()-> consumer.accept(e.copy(f), new DelayBehaviour(duration)));
-    }
+    public static Function<WebSocketEvent,HeartbeatMessage> heartbeatResponse = e -> new HeartbeatMessage("ping");
 
-    public static class DelayBehaviour {
+    public static Consumer<MessageEvent<HeartbeatMessage>> heartbeatResponseConsumer = e -> delay(seconds(5),e).thenAccept(heartbeat);
 
-        private final Supplier<Long> duration;
+    public static Consumer<OpenEvent> connectionConsumer = e -> delay(seconds(5),e).thenAccept(heartbeat);
 
-        public DelayBehaviour(Supplier<Long> duration) {
-            this.duration = duration;
-        }
+    public static Function<String, WebSocketMessage> messageTransformer = t -> WebSocketMessage.from(t);
 
-        public void sleep() {
-            try {
-                Thread.sleep(duration.get());
-            } catch (InterruptedException e) {
-                logger.error(e.getMessage(), e);
-                throw new RuntimeException(e);
-            }
-        }
-    }
+    public static Function<MessageEvent<String>, MessageEvent<WebSocketMessage>> messageEventTransformer = e -> e.copy(messageTransformer);
+
+    public static Consumer<MessageEvent<WebSocketMessage>> applicationMessageConsumer = e -> {
+        logger.info("application message received: "+e);
+    };
+
+    public static Consumer<MessageEvent<WebSocketMessage>> heartbeatMessageConsumer = e -> {
+        logger.info("heartbeat message received: "+e.getMessage());
+        CompletionStage<HeartbeatMessage> future = delay(seconds(5), e).thenApply(heartbeatResponse);
+        future.thenAccept(r -> e.endPoint().sendMessage(r.toJson()));
+    };
+
+    public static Consumer<MessageEvent<WebSocketMessage>> heartbeatFilter = filter((MessageEvent<WebSocketMessage> e) -> e.getMessage().isApplicationMessage(), applicationMessageConsumer, heartbeatMessageConsumer);
+
+    public static Consumer<MessageEvent<String>> messageConsumer = e -> {
+        logger.info("received message event with payload: "+e.getMessage());
+        heartbeatFilter.accept(messageEventTransformer.apply(e));
+    };
+
+    public static Consumer<WebSocketEvent<String>> heartbeatConsumer =  e -> {
+        logger.info("received event: "+e);
+        e.acceptOpenEventConsumer(connectionConsumer).acceptMessageEventConsumer(messageConsumer);
+    };
 
     public static Supplier<Long> seconds(int n) {
         return timeUnit(n, TimeUnit.SECONDS);
@@ -102,18 +112,35 @@ public class Functions {
         return ()-> unit.toMillis(n);
     }
 
-    public static <T,U> Consumer<T> filter(Predicate<T> predicate, Consumer<T> after) {
-        return t -> {
-            if(predicate.test(t)) {
-                after.accept(t);
+    public static <T> CompletionStage<T> delay(Supplier<Long> duration, T event) {
+        CompletableFuture<T> future = new CompletableFuture<>();
+
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                future.complete(event);
             }
-        };
+        }, duration.get());
+
+        return future;
     }
 
-    public static <T,U> Function<T, Optional<U>> filter(Predicate<T> predicate, Function<T,U> after) {
+    public static <T,U> Consumer<T> filter(Predicate<T> predicate, Consumer<T> after) {
+        return adapter(filter(predicate, adapter(after)));
+    }
+
+    public static <T,U> Consumer<T> filter(Predicate<T> predicate, Consumer<T> then, Consumer<T> otherwise) {
+        return adapter(filter(predicate, adapter(then), adapter(otherwise)));
+    }
+
+    public static <T,U> Function<T, Optional<U>> filter(Predicate<T> predicate, Function<T,U> then) {
+        return filter(predicate, (Function<T, Optional<U>>) t -> Optional.of(then.apply(t)), t -> Optional.empty());
+    }
+
+    public static <T,U> Function<T, U> filter(Predicate<T> predicate, Function<T,U> then, Function<T,U> otherwise) {
         return t -> predicate.test(t)?
-                Optional.of(after.apply(t)) :
-                Optional.empty();
+                then.apply(t) :
+                otherwise.apply(t);
     }
 
     public static <T> Consumer<T> despatch(Consumer<T> consumer) {
@@ -132,23 +159,15 @@ public class Functions {
         return t -> Stream.of(functions).map(f -> despatch(f).apply(t)).collect(Collectors.toSet());
     }
 
-    public static <T> Consumer<T> switchIt(Predicate<T> predicate, Consumer<T> ifTrue, Consumer<T> ifFalse) {
+    public static <T,U> Consumer<T> adapter(Function<T,U> f) {
+        return t -> f.apply(t);
+    }
+
+    public static <T> Function<T,Void> adapter(Consumer<T> c) {
         return t -> {
-            if(predicate.test(t)) {
-                ifTrue.accept(t);
-            } else {
-                ifFalse.accept(t);
-            }
+            c.accept(t);
+            return null;
         };
     }
 
-    public static <T,U> Function<T,U> switchIt(Predicate<T> predicate, Function<T,U> ifTrue, Function<T,U> ifFalse) {
-        return t -> {
-            if(predicate.test(t)) {
-                return ifTrue.apply(t);
-            } else {
-                return ifFalse.apply(t);
-            }
-        };
-    }
 }

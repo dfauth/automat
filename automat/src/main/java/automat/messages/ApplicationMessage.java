@@ -5,21 +5,21 @@ import automat.WebSocketMessageHandler;
 
 import java.util.Optional;
 
-public class HeartbeatMessage extends WebSocketMessage {
+public class ApplicationMessage extends WebSocketMessage {
 
 
-    public HeartbeatMessage() {
-        super(WebSocketMessage.WebSocketMessageType.HEARTBEAT);
+    public ApplicationMessage(WebSocketMessageType type) {
+        super(type);
     }
 
-    public HeartbeatMessage(String payload) {
-        super(WebSocketMessage.WebSocketMessageType.HEARTBEAT);
+    public ApplicationMessage(WebSocketMessageType type, String payload) {
+        super(type);
         setPayload(payload);
     }
 
     @Override
     public boolean isApplicationMessage() {
-        return false;
+        return true;
     }
 
     @Override

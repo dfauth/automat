@@ -1,8 +1,6 @@
 package test;
 
 import automat.WebSocketMessage;
-import automat.events.MessageEvent;
-import automat.messages.HeartbeatMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.Assert;
@@ -11,7 +9,6 @@ import org.testng.annotations.Test;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
 
 import static automat.Automat.Utils.forHttpCode;
 import static automat.Automat.given;
@@ -56,37 +53,14 @@ public class TestCase {
                 apply(
                   forHttpCode(403).
                   use(
-                    loginHandler(AUTH).
-                    andThen(storeToken).
-                    andThen(
-                      subscribeTo(
-                        SUBSCRIPTION,
-                        e -> {
-                          e.acceptOpenEventConsumer(
-                            delay(
-                              seconds(5),
-                              (e1, b)-> {
-                                b.sleep();
-                                e1.endPoint().sendMessage(new HeartbeatMessage("ping").toJson());
-                              }
-                            )
-                          ).
-                          acceptMessageEventConsumer(
-                            delay(
-                              seconds(5),
-                                (BiConsumer<MessageEvent<WebSocketMessage>,DelayBehaviour>) (e2, b) -> {
-                                  logger.info("received: " + e2.getMessage());
-                                  queue.offer(e2.getMessage());
-                                  b.sleep();
-                                  e2.endPoint().sendMessage(new HeartbeatMessage("ping").toJson());
-                                },
-                                (String s)->WebSocketMessage.from(s)
-                            )
-                          );
-                        } // e->
-                      )// subscribeTo
-                    )
-                  )
+                    loginHandler(AUTH)
+                    .andThen(storeToken)
+                    .andThen(subscribeTo(
+                      SUBSCRIPTION,
+                      heartbeatConsumer
+                    ) // subscribeTo
+                    ) // andThen
+                  ) // use
                 ).
 
         get(IDENTITY).then().
@@ -96,7 +70,7 @@ public class TestCase {
         WebSocketMessage message = null;
         int cnt = 0;
         do {
-            message = queue.poll(10, TimeUnit.SECONDS);
+            message = queue.poll(600, TimeUnit.SECONDS);
             cnt++;
             logger.info("received message: "+message);
         } while(message != null && cnt < 10);

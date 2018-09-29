@@ -51,7 +51,9 @@ public abstract class WebSocketEvent<T> {
         return endpoint;
     }
 
-    public abstract <E extends WebSocketEvent<U>,U> E copy(Function<T,U> f);
+    public <E extends WebSocketEvent<U>,U> E copy(Function<T, U> f) {
+        return (E) this;
+    }
 
 }
 
