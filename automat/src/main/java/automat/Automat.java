@@ -15,6 +15,10 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -30,6 +34,7 @@ public class Automat implements AutomationContext {
     private String refreshToken;
     private Optional<Identity> identity = Optional.empty();
     private Optional<Environment> environment = Optional.empty();
+    private BlockingQueue<WebSocketMessage> queue = new ArrayBlockingQueue<>(100);
 
     public static AutomationContext given() {
         return automats.get();
@@ -67,6 +72,34 @@ public class Automat implements AutomationContext {
 
     public ResponseBuilder onResponse() {
         return this.responseBuilder;
+    }
+
+    @Override
+    public BlockingQueue<WebSocketMessage> queue() {
+        return queue;
+    }
+
+    @Override
+    public CompletableFuture<WebSocketMessage> subscribe(Consumer<WebSocketMessage> consumer) {
+        return subscribe(SubscriptionFilter.ALL, consumer);
+    }
+
+    @Override
+    public CompletableFuture<WebSocketMessage> subscribe(SubscriptionFilter filter, Consumer<WebSocketMessage> consumer) {
+        CompletableFuture<WebSocketMessage> future = new CompletableFuture<>();
+        Functions.despatch(() -> {
+            try {
+                WebSocketMessage message = queue.take();
+                if(filter.accept(message)) {
+                    consumer.accept(message);
+                    future.complete(message);
+                }
+            } catch (InterruptedException e) {
+                logger.error(e.getMessage(), e);
+                future.completeExceptionally(e);
+            }
+        });
+        return future;
     }
 
     public Filter asFilter() {

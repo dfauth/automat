@@ -1,6 +1,7 @@
 package automat;
 
 import automat.messages.HeartbeatMessage;
+import automat.messages.KnownMessage;
 import automat.messages.UnknownMessage;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -102,9 +103,14 @@ public abstract class WebSocketMessage {
 
     public abstract <T> Optional<T> accept(WebSocketMessageHandler<T> handler);
 
+    public WebSocketMessageType getMsgType() {
+        return type;
+    }
+
     public enum WebSocketMessageType {
 
         HEARTBEAT("heartbeat", () -> new HeartbeatMessage()),
+        KNOWN("known", () -> new KnownMessage()),
         UNKNOWN("unknown", () -> new UnknownMessage());
 
         private String msgType;

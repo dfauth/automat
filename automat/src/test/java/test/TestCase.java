@@ -1,19 +1,21 @@
 package test;
 
+import automat.AutomationContext;
+import automat.SubscriptionFilter;
 import automat.WebSocketMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import static automat.Automat.Utils.forHttpCode;
 import static automat.Automat.given;
 import static automat.Environment.LOCAL;
 import static automat.Functions.*;
+import static automat.WebSocketMessage.WebSocketMessageType.KNOWN;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isOneOf;
 import static test.TestIdentity.WATCHERBGYPSY;
@@ -41,11 +43,11 @@ public class TestCase {
     }
 
     @Test(groups = "identity")
-    public void testIdentity() throws InterruptedException {
+    public void testIdentity() throws InterruptedException, ExecutionException {
 
-        BlockingQueue<WebSocketMessage> queue = new ArrayBlockingQueue<>(100);
+        AutomationContext ctx = given();
 
-        given().environment(LOCAL).
+        ctx.environment(LOCAL).
                 identity(WATCHERBGYPSY).
                 onRequest().
                 apply(authHandler).
@@ -57,7 +59,7 @@ public class TestCase {
                     .andThen(storeToken)
                     .andThen(subscribeTo(
                       SUBSCRIPTION,
-                      heartbeatConsumer
+                      heartbeatConsumer(ctx.queue())
                     ) // subscribeTo
                     ) // andThen
                   ) // use
@@ -67,15 +69,10 @@ public class TestCase {
                 statusCode(200).
                 body("users[0].username", is(WATCHERBGYPSY.username()));
 
-        WebSocketMessage message = null;
-        int cnt = 0;
-        do {
-            message = queue.poll(600, TimeUnit.SECONDS);
-            cnt++;
-            logger.info("received message: "+message);
-        } while(message != null && cnt < 10);
-        Assert.assertNotNull(message);
-
+        CompletableFuture<WebSocketMessage> future = ctx.subscribe(new SubscriptionFilter(KNOWN), m -> {
+            logger.info("received message: " + m);
+        });
+        Assert.assertNotNull(future.get());
     }
 
 }

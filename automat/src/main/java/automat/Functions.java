@@ -82,9 +82,12 @@ public class Functions {
 
     public static Function<MessageEvent<String>, MessageEvent<WebSocketMessage>> messageEventTransformer = e -> e.copy(messageTransformer);
 
-    public static Consumer<MessageEvent<WebSocketMessage>> applicationMessageConsumer = e -> {
-        logger.info("application message received: "+e);
-    };
+    public static Consumer<MessageEvent<WebSocketMessage>> applicationMessageConsumer(BlockingQueue<WebSocketMessage> queue) {
+        return e -> {
+            logger.info("application message received: "+e.getMessage());
+            queue.offer(e.getMessage());
+        };
+    }
 
     public static Consumer<MessageEvent<WebSocketMessage>> heartbeatMessageConsumer = e -> {
         logger.info("heartbeat message received: "+e.getMessage());
@@ -92,17 +95,23 @@ public class Functions {
         future.thenAccept(r -> e.endPoint().sendMessage(r.toJson()));
     };
 
-    public static Consumer<MessageEvent<WebSocketMessage>> heartbeatFilter = filter((MessageEvent<WebSocketMessage> e) -> e.getMessage().isApplicationMessage(), applicationMessageConsumer, heartbeatMessageConsumer);
+    public static Consumer<MessageEvent<WebSocketMessage>> heartbeatFilter(BlockingQueue<WebSocketMessage> queue) {
+        return filter((MessageEvent<WebSocketMessage> e) -> e.getMessage().isApplicationMessage(), applicationMessageConsumer(queue), heartbeatMessageConsumer);
+    }
 
-    public static Consumer<MessageEvent<String>> messageConsumer = e -> {
-        logger.info("received message event with payload: "+e.getMessage());
-        heartbeatFilter.accept(messageEventTransformer.apply(e));
-    };
+    public static Consumer<MessageEvent<String>> messageConsumer(BlockingQueue<WebSocketMessage> queue) {
+        return e -> {
+            logger.info("received message event with payload: "+e.getMessage());
+            heartbeatFilter(queue).accept(messageEventTransformer.apply(e));
+        };
+    }
 
-    public static Consumer<WebSocketEvent<String>> heartbeatConsumer =  e -> {
-        logger.info("received event: "+e);
-        e.acceptOpenEventConsumer(connectionConsumer).acceptMessageEventConsumer(messageConsumer);
-    };
+    public static Consumer<WebSocketEvent<String>> heartbeatConsumer(BlockingQueue<WebSocketMessage> queue) {
+        return e -> {
+            logger.info("received event: "+e);
+            e.acceptOpenEventConsumer(connectionConsumer).acceptMessageEventConsumer(messageConsumer(queue));
+        };
+    }
 
     public static Supplier<Long> seconds(int n) {
         return timeUnit(n, TimeUnit.SECONDS);
@@ -141,6 +150,10 @@ public class Functions {
         return t -> predicate.test(t)?
                 then.apply(t) :
                 otherwise.apply(t);
+    }
+
+    public static Future<?> despatch(Runnable runnable) {
+        return executor.submit(runnable);
     }
 
     public static <T> Consumer<T> despatch(Consumer<T> consumer) {

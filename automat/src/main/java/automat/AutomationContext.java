@@ -4,6 +4,9 @@ import io.restassured.response.Response;
 
 import java.net.URI;
 import java.util.Optional;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 
 public interface AutomationContext {
@@ -29,4 +32,10 @@ public interface AutomationContext {
     Automat.RequestBuilder onRequest();
 
     Automat.ResponseBuilder onResponse();
+
+    BlockingQueue<WebSocketMessage> queue();
+
+    CompletableFuture<WebSocketMessage> subscribe(SubscriptionFilter filter, Consumer<WebSocketMessage> consumer);
+
+    CompletableFuture<WebSocketMessage> subscribe(Consumer<WebSocketMessage> consumer);
 }

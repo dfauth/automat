@@ -112,14 +112,17 @@ class IdentityServiceImpl(
         case "{\"msgType\":\"heartbeat\",\"payload\":\"ping\"}" => {
           logger.info("received ping")
           Future{
-            Thread.sleep(5000)
             if(math.random < 0.25) {
-              "{\"msgType\":\"something\",\"payload\":\"WOOZ\"}"
+              if(math.random < 0.5) {
+                "{\"msgType\":\"something\",\"payload\":\"an unknown payload\"}"
+              } else {
+                "{\"msgType\":\"known\",\"payload\":\"a known payload\"}"
+              }
             } else {
+              Thread.sleep(5000)
               "{\"msgType\":\"heartbeat\",\"payload\":\"pong\"}"
             }
           }
-//          Future.successful("{\"msgType\":\"heartbeat\",\"payload\":\"pong\"}")
         }
       })
     }
