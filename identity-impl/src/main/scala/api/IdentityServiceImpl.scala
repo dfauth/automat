@@ -2,10 +2,13 @@ package api
 
 import java.util.UUID
 
+import akka.NotUsed
+import akka.stream.scaladsl.Source
 import api.authentication.AuthenticationServiceComposition._
 import api.authentication.TokenContent
 import api.request.WithUserCreationFields
 import api.response.{TokenRefreshDone, UserLoginDone}
+import api.util.RandomKnownMessageSource
 import api.validation.ValidationUtil._
 import com.lightbend.lagom.scaladsl.api.ServiceCall
 import com.lightbend.lagom.scaladsl.api.transport.{BadRequest, Forbidden}
@@ -103,35 +106,27 @@ class IdentityServiceImpl(
     }
   }
 
-  //   def stream: ServiceCall[Source[String, NotUsed], Source[String, NotUsed]]
+  def randomStream(delay:Int): Source[String, NotUsed] = {
+    Source.fromGraph(new RandomKnownMessageSource("known", delay))
+  }
+
+  def heartbeat(flow: Source[String, NotUsed]):Source[String, NotUsed] = {
+    flow.mapAsync(1) {
+      case "{\"msgType\":\"heartbeat\",\"payload\":\"ping\"}" => {
+        logger.info("received ping")
+        Future{
+          val reply = "{\"msgType\":\"heartbeat\",\"payload\":\"pong\"}"
+          logger.info("replied: "+reply)
+          reply
+        }
+      }
+    }
+  }
 
   override def stream() = authenticated { (tokenContent, _) =>
-    ServerServiceCall { flow =>
-      logger.info("stream: flow: "+flow+" tokenContent: "+tokenContent)
-      Future.successful(flow.mapAsync(1) {
-        case "{\"msgType\":\"heartbeat\",\"payload\":\"ping\"}" => {
-          logger.info("received ping")
-          Future{
-            if(math.random < 0.25) {
-              if(math.random < 0.5) {
-                "{\"msgType\":\"something\",\"payload\":\"an unknown payload\"}"
-              } else {
-                "{\"msgType\":\"known\",\"payload\":\"a known payload\"}"
-              }
-            } else {
-              Thread.sleep(5000)
-              "{\"msgType\":\"heartbeat\",\"payload\":\"pong\"}"
-            }
-          }
-        }
-      })
-    }
-
-    /**
-    def stream = ServiceCall { hellos =>
-    Future.successful(hellos.mapAsync(8)(hellolagomService.hello(_).invoke()))
-  }
-       */
+    ServerServiceCall { flow => Future(
+      heartbeat(flow).async.merge(randomStream(10000).async)
+    )}
   }
 
   private def reserveUsernameAndEmail[B](request: WithUserCreationFields, onSuccess: () => Future[B]): Future[B] = {
