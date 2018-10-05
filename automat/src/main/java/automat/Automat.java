@@ -85,6 +85,11 @@ public class Automat implements AutomationContext {
     }
 
     @Override
+    public <T> T configureAs(Function<AutomationContext,T> f) {
+        return f.apply(this);
+    }
+
+    @Override
     public CompletableFuture<WebSocketMessage> subscribe(SubscriptionFilter filter, Consumer<WebSocketMessage> consumer) {
         CompletableFuture<WebSocketMessage> future = new CompletableFuture<>();
         Functions.despatch(() -> {

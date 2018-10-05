@@ -106,10 +106,6 @@ class IdentityServiceImpl(
     }
   }
 
-  def randomStream(delay:Int): Source[String, NotUsed] = {
-    Source.fromGraph(new RandomKnownMessageSource("known", delay))
-  }
-
   def heartbeat(flow: Source[String, NotUsed]):Source[String, NotUsed] = {
     flow.mapAsync(1) {
       case "{\"msgType\":\"heartbeat\",\"payload\":\"ping\"}" => {
@@ -125,7 +121,7 @@ class IdentityServiceImpl(
 
   override def stream() = authenticated { (tokenContent, _) =>
     ServerServiceCall { flow => Future(
-      heartbeat(flow).async.merge(randomStream(10000).async)
+      heartbeat(flow).async.merge(randomStream.source.async)
     )}
   }
 
@@ -155,4 +151,8 @@ class IdentityServiceImpl(
       }
     })
   }
+}
+
+object randomStream {
+  val source: Source[String, NotUsed] = Source.fromGraph(new RandomKnownMessageSource("known", 10000))
 }

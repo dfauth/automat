@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 
 public interface AutomationContext {
@@ -38,4 +39,6 @@ public interface AutomationContext {
     CompletableFuture<WebSocketMessage> subscribe(SubscriptionFilter filter, Consumer<WebSocketMessage> consumer);
 
     CompletableFuture<WebSocketMessage> subscribe(Consumer<WebSocketMessage> consumer);
+
+    <T> T configureAs(Function<AutomationContext,T> function);
 }

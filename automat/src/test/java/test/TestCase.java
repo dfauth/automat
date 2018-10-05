@@ -11,15 +11,15 @@ import org.testng.annotations.Test;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import static automat.Automat.Utils.forHttpCode;
 import static automat.Automat.given;
 import static automat.Environment.LOCAL;
-import static automat.Functions.*;
 import static automat.WebSocketMessage.WebSocketMessageType.KNOWN;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isOneOf;
 import static test.TestIdentity.WATCHERBGYPSY;
-import static test.TestResource.*;
+import static test.TestResource.IDENTITY;
+import static test.TestResource.REGISTRATION;
+import static test.Configurations.basicClientWithWebSocket;
 
 public class TestCase {
 
@@ -49,21 +49,7 @@ public class TestCase {
 
         ctx.environment(LOCAL).
                 identity(WATCHERBGYPSY).
-                onRequest().
-                apply(authHandler).
-                onResponse().
-                apply(
-                  forHttpCode(403).
-                  use(
-                    loginHandler(AUTH)
-                    .andThen(storeToken)
-                    .andThen(subscribeTo(
-                      SUBSCRIPTION,
-                      heartbeatConsumer(ctx.queue())
-                    ) // subscribeTo
-                    ) // andThen
-                  ) // use
-                ).
+                configureAs(basicClientWithWebSocket).
 
         get(IDENTITY).then().
                 statusCode(200).

@@ -19,6 +19,7 @@ import java.util.function.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static automat.Automat.Utils.forHttpCode;
 import static automat.Automat.given;
 
 public class Functions {
