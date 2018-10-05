@@ -19,7 +19,6 @@ import java.util.function.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static automat.Automat.Utils.forHttpCode;
 import static automat.Automat.given;
 
 public class Functions {
@@ -75,9 +74,17 @@ public class Functions {
 
     public static Function<WebSocketEvent,HeartbeatMessage> heartbeatResponse = e -> new HeartbeatMessage("ping");
 
-    public static Consumer<MessageEvent<HeartbeatMessage>> heartbeatResponseConsumer = e -> delay(seconds(5),e).thenAccept(heartbeat);
+    public static Consumer<MessageEvent<HeartbeatMessage>> heartbeatResponseConsumer = heartbeatResponseConsumer(5);
 
-    public static Consumer<OpenEvent> connectionConsumer = e -> delay(seconds(5),e).thenAccept(heartbeat);
+    public static Consumer<MessageEvent<HeartbeatMessage>> heartbeatResponseConsumer(int seconds) {
+        return e -> delay(seconds(seconds),e).thenAccept(heartbeat);
+    }
+
+    public static Consumer<OpenEvent> connectionConsumer = connectionConsumer(5);
+
+    public static Consumer<OpenEvent> connectionConsumer(int seconds) {
+        return e -> delay(seconds(seconds),e).thenAccept(heartbeat);
+    }
 
     public static Function<String, WebSocketMessage> messageTransformer = t -> WebSocketMessage.from(t);
 
@@ -90,11 +97,15 @@ public class Functions {
         };
     }
 
-    public static Consumer<MessageEvent<WebSocketMessage>> heartbeatMessageConsumer = e -> {
-        logger.info("heartbeat message received: "+e.getMessage());
-        CompletionStage<HeartbeatMessage> future = delay(seconds(5), e).thenApply(heartbeatResponse);
-        future.thenAccept(r -> e.endPoint().sendMessage(r.toJson()));
-    };
+    public static Consumer<MessageEvent<WebSocketMessage>> heartbeatMessageConsumer = heartbeatMessageConsumer(5);
+
+    public static Consumer<MessageEvent<WebSocketMessage>> heartbeatMessageConsumer(int seconds) {
+        return e -> {
+            logger.info("heartbeat message received: "+e.getMessage());
+            CompletionStage<HeartbeatMessage> future = delay(seconds(seconds), e).thenApply(heartbeatResponse);
+            future.thenAccept(r -> e.endPoint().sendMessage(r.toJson()));
+        };
+    }
 
     public static Consumer<MessageEvent<WebSocketMessage>> heartbeatFilter(BlockingQueue<WebSocketMessage> queue) {
         return filter((MessageEvent<WebSocketMessage> e) -> e.getMessage().isApplicationMessage(), applicationMessageConsumer(queue), heartbeatMessageConsumer);
