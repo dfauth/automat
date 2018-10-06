@@ -1,5 +1,6 @@
 package automat;
 
+import automat.messages.EchoMessage;
 import automat.messages.HeartbeatMessage;
 import automat.messages.KnownMessage;
 import automat.messages.UnknownMessage;
@@ -111,7 +112,8 @@ public abstract class WebSocketMessage {
 
         HEARTBEAT("heartbeat", () -> new HeartbeatMessage()),
         KNOWN("known", () -> new KnownMessage()),
-        UNKNOWN("unknown", () -> new UnknownMessage());
+        UNKNOWN("unknown", () -> new UnknownMessage()),
+        ECHO("echo", () -> new EchoMessage());
 
         private String msgType;
         private Supplier<? extends WebSocketMessage> supplier;

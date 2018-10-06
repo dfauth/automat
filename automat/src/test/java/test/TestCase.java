@@ -4,6 +4,7 @@ import automat.AutomationContext;
 import automat.HeartbeatContext;
 import automat.SubscriptionFilter;
 import automat.WebSocketMessage;
+import automat.messages.EchoMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.Assert;
@@ -14,6 +15,7 @@ import java.util.concurrent.ExecutionException;
 
 import static automat.Automat.given;
 import static automat.Environment.LOCAL;
+import static automat.WebSocketMessage.WebSocketMessageType.ECHO;
 import static automat.WebSocketMessage.WebSocketMessageType.KNOWN;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isOneOf;
@@ -64,6 +66,10 @@ public class TestCase {
         logger.info("received heartbeat: "+heartbeat);
         Assert.assertTrue(ctx.heartbeatContext().isAlive());
         Assert.assertNotNull(future.get());
+        String TEST = "Test String for echo";
+        CompletableFuture<WebSocketMessage> future1 = ctx.subscribe(new SubscriptionFilter(ECHO));
+        ctx.async(new EchoMessage(TEST));
+        Assert.assertNotNull(future1.get());
     }
 
 }

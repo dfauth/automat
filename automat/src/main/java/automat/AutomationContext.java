@@ -50,4 +50,8 @@ public interface AutomationContext {
     AutomationContext withHeartbeatInterval(Duration heartbeatInterval);
 
     Duration heartbeatInterval();
+
+    AutomationContext async(WebSocketMessage message);
+
+    WebSocketEndpoint webSocketEndpoint(Resource resource);
 }

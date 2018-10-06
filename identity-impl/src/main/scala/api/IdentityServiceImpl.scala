@@ -10,6 +10,7 @@ import api.request.WithUserCreationFields
 import api.response.{TokenRefreshDone, UserLoginDone}
 import api.util.RandomKnownMessageSource
 import api.validation.ValidationUtil._
+import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import com.lightbend.lagom.scaladsl.api.ServiceCall
 import com.lightbend.lagom.scaladsl.api.transport.{BadRequest, Forbidden}
 import com.lightbend.lagom.scaladsl.persistence.PersistentEntityRegistry
@@ -112,6 +113,17 @@ class IdentityServiceImpl(
         logger.info("received ping")
         Future{
           val reply = "{\"msgType\":\"heartbeat\",\"payload\":\"pong\"}"
+          logger.info("replied: "+reply)
+          reply
+        }
+      }
+      case s:String if(s.contains("\"msgType\":\"echo\"")) => {
+        val mapper = new ObjectMapper
+        val jsonNode = mapper.readValue(s, classOf[JsonNode])
+        val payload = jsonNode.get("payload")
+        logger.info(s"received echo with payload: ${payload.asText()}: ${s}")
+        Future{
+          val reply = "{\"msgType\":\"echo\",\"payload\":\"echo of \'"+payload.asText()+"\'\"}"
           logger.info("replied: "+reply)
           reply
         }

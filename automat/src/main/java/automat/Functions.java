@@ -46,7 +46,7 @@ public class Functions {
             if(r.statusCode() == 200) {
                 logger.info("subscribing to "+resource);
                 // subscribe
-                WebSocketEndpoint endPoint = new WebSocketTextEndpoint(given(), ctx.toUri("ws", resource));
+                WebSocketEndpoint endPoint = ctx.webSocketEndpoint(resource);
                 endPoint.onEvent(consumer);
                 endPoint.start();
             }
@@ -123,10 +123,10 @@ public class Functions {
     }
 
     public static Consumer<WebSocketEvent<String>> heartbeatConsumer(BlockingQueue<WebSocketMessage> queue) {
-        return e -> {
+        return despatch(e -> {
             logger.info("received event: "+e);
             e.acceptOpenEventConsumer(connectionConsumer).acceptMessageEventConsumer(messageConsumer(queue));
-        };
+        });
     }
 
     public static Duration seconds(int n) {

@@ -39,6 +39,7 @@ public class Automat implements AutomationContext {
     private BlockingQueue<WebSocketMessage> queue = new ArrayBlockingQueue<>(100);
     private Duration heartbeatInterval = Duration.of(5, ChronoUnit.SECONDS);
     private HeartbeatContext heartbeatContext = new HeartbeatContext(heartbeatInterval);
+    private WebSocketTextEndpoint webSocketEndpoint;
 
     public static AutomationContext automationContext() {
         return given();
@@ -65,6 +66,18 @@ public class Automat implements AutomationContext {
 
     public Duration heartbeatInterval() {
         return this.heartbeatInterval;
+    }
+
+    @Override
+    public AutomationContext async(WebSocketMessage message) {
+        webSocketEndpoint.sendMessage(message.toJson());
+        return this;
+    }
+
+    @Override
+    public WebSocketEndpoint webSocketEndpoint(Resource resource) {
+        webSocketEndpoint = new WebSocketTextEndpoint(this, toUri("ws", resource));
+        return webSocketEndpoint;
     }
 
     public AutomationContext environment(Environment environment) {
