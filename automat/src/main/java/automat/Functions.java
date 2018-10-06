@@ -10,6 +10,8 @@ import io.restassured.specification.RequestSpecification;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.Set;
 import java.util.Timer;
@@ -19,6 +21,7 @@ import java.util.function.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static automat.Automat.automationContext;
 import static automat.Automat.given;
 
 public class Functions {
@@ -74,16 +77,16 @@ public class Functions {
 
     public static Function<WebSocketEvent,HeartbeatMessage> heartbeatResponse = e -> new HeartbeatMessage("ping");
 
-    public static Consumer<MessageEvent<HeartbeatMessage>> heartbeatResponseConsumer = heartbeatResponseConsumer(5);
+    public static Consumer<MessageEvent<HeartbeatMessage>> heartbeatResponseConsumer = heartbeatResponseConsumer(automationContext().heartbeatInterval());
 
-    public static Consumer<MessageEvent<HeartbeatMessage>> heartbeatResponseConsumer(int seconds) {
-        return e -> delay(seconds(seconds),e).thenAccept(heartbeat);
+    public static Consumer<MessageEvent<HeartbeatMessage>> heartbeatResponseConsumer(Duration duration) {
+        return e -> delay(duration,e).thenAccept(heartbeat);
     }
 
-    public static Consumer<OpenEvent> connectionConsumer = connectionConsumer(5);
+    public static Consumer<OpenEvent> connectionConsumer = connectionConsumer(automationContext().heartbeatInterval());
 
-    public static Consumer<OpenEvent> connectionConsumer(int seconds) {
-        return e -> delay(seconds(seconds),e).thenAccept(heartbeat);
+    public static Consumer<OpenEvent> connectionConsumer(Duration delay) {
+        return e -> delay(delay ,e).thenAccept(heartbeat);
     }
 
     public static Function<String, WebSocketMessage> messageTransformer = t -> WebSocketMessage.from(t);
@@ -97,12 +100,13 @@ public class Functions {
         };
     }
 
-    public static Consumer<MessageEvent<WebSocketMessage>> heartbeatMessageConsumer = heartbeatMessageConsumer(5);
+    public static Consumer<MessageEvent<WebSocketMessage>> heartbeatMessageConsumer = heartbeatMessageConsumer(automationContext().heartbeatInterval());
 
-    public static Consumer<MessageEvent<WebSocketMessage>> heartbeatMessageConsumer(int seconds) {
+    public static Consumer<MessageEvent<WebSocketMessage>> heartbeatMessageConsumer(Duration delay) {
+        HeartbeatContext ctx = automationContext().heartbeatContext();
         return e -> {
-            logger.info("heartbeat message received: "+e.getMessage());
-            CompletionStage<HeartbeatMessage> future = delay(seconds(seconds), e).thenApply(heartbeatResponse);
+            ctx.heartbeat();
+            CompletionStage<HeartbeatMessage> future = delay(delay, e).thenApply(heartbeatResponse);
             future.thenAccept(r -> e.endPoint().sendMessage(r.toJson()));
         };
     }
@@ -125,15 +129,19 @@ public class Functions {
         };
     }
 
-    public static Supplier<Long> seconds(int n) {
-        return timeUnit(n, TimeUnit.SECONDS);
+    public static Duration seconds(int n) {
+        return chronoUnit(ChronoUnit.SECONDS).apply(n);
     }
 
-    public static Supplier<Long> timeUnit(int n, TimeUnit unit) {
-        return ()-> unit.toMillis(n);
+    public static Duration milliseconds(int n) {
+        return chronoUnit(ChronoUnit.MILLIS).apply(n);
     }
 
-    public static <T> CompletionStage<T> delay(Supplier<Long> duration, T event) {
+    public static Function<Integer, Duration> chronoUnit(ChronoUnit unit) {
+        return n -> Duration.of(n, unit);
+    }
+
+    public static <T> CompletionStage<T> delay(Duration duration, T event) {
         CompletableFuture<T> future = new CompletableFuture<>();
 
         new Timer().schedule(new TimerTask() {
@@ -141,7 +149,7 @@ public class Functions {
             public void run() {
                 future.complete(event);
             }
-        }, duration.get());
+        }, duration.toMillis());
 
         return future;
     }

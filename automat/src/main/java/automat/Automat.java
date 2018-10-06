@@ -11,6 +11,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.net.URI;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -35,6 +37,12 @@ public class Automat implements AutomationContext {
     private Optional<Identity> identity = Optional.empty();
     private Optional<Environment> environment = Optional.empty();
     private BlockingQueue<WebSocketMessage> queue = new ArrayBlockingQueue<>(100);
+    private Duration heartbeatInterval = Duration.of(5, ChronoUnit.SECONDS);
+    private HeartbeatContext heartbeatContext = new HeartbeatContext(heartbeatInterval);
+
+    public static AutomationContext automationContext() {
+        return given();
+    }
 
     public static AutomationContext given() {
         return automats.get();
@@ -47,6 +55,16 @@ public class Automat implements AutomationContext {
         this.environment = Optional.of(environment);
         Environment.setEnvironment(environment);
         return this;
+    }
+
+    @Override
+    public AutomationContext withHeartbeatInterval(Duration heartbeatInterval) {
+        this.heartbeatInterval = heartbeatInterval;
+        return this;
+    }
+
+    public Duration heartbeatInterval() {
+        return this.heartbeatInterval;
     }
 
     public AutomationContext environment(Environment environment) {
@@ -87,6 +105,16 @@ public class Automat implements AutomationContext {
     @Override
     public <T> T configureAs(Function<AutomationContext,T> f) {
         return f.apply(this);
+    }
+
+    @Override
+    public HeartbeatContext heartbeatContext() {
+        return heartbeatContext;
+    }
+
+    @Override
+    public CompletableFuture<WebSocketMessage> subscribe(SubscriptionFilter filter) {
+        return subscribe(filter, m -> {});
     }
 
     @Override

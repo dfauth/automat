@@ -1,6 +1,7 @@
 package test;
 
 import automat.AutomationContext;
+import automat.HeartbeatContext;
 import automat.SubscriptionFilter;
 import automat.WebSocketMessage;
 import org.apache.logging.log4j.LogManager;
@@ -16,10 +17,10 @@ import static automat.Environment.LOCAL;
 import static automat.WebSocketMessage.WebSocketMessageType.KNOWN;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isOneOf;
+import static test.Configurations.basicClientWithWebSocket;
 import static test.TestIdentity.WATCHERBGYPSY;
 import static test.TestResource.IDENTITY;
 import static test.TestResource.REGISTRATION;
-import static test.Configurations.basicClientWithWebSocket;
 
 public class TestCase {
 
@@ -55,9 +56,13 @@ public class TestCase {
                 statusCode(200).
                 body("users[0].username", is(WATCHERBGYPSY.username()));
 
-        CompletableFuture<WebSocketMessage> future = ctx.subscribe(new SubscriptionFilter(KNOWN), m -> {
-            logger.info("received message: " + m);
+        CompletableFuture<WebSocketMessage> future = ctx.subscribe(new SubscriptionFilter(KNOWN));
+        ctx.heartbeatContext().onOverdue(e -> {
+            logger.info("heartbeat overdue."+e.last().map(h -> " Last heartbeat: "+h.elapsedSince()).orElse("No heartbeat received"));
         });
+        HeartbeatContext.Heartbeat heartbeat = ctx.heartbeatContext().last().orElse(ctx.heartbeatContext().next().get());
+        logger.info("received heartbeat: "+heartbeat);
+        Assert.assertTrue(ctx.heartbeatContext().isAlive());
         Assert.assertNotNull(future.get());
     }
 

@@ -3,6 +3,7 @@ package automat;
 import io.restassured.response.Response;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -36,9 +37,17 @@ public interface AutomationContext {
 
     BlockingQueue<WebSocketMessage> queue();
 
+    CompletableFuture<WebSocketMessage> subscribe(SubscriptionFilter filter);
+
     CompletableFuture<WebSocketMessage> subscribe(SubscriptionFilter filter, Consumer<WebSocketMessage> consumer);
 
     CompletableFuture<WebSocketMessage> subscribe(Consumer<WebSocketMessage> consumer);
 
     <T> T configureAs(Function<AutomationContext,T> function);
+
+    HeartbeatContext heartbeatContext();
+
+    AutomationContext withHeartbeatInterval(Duration heartbeatInterval);
+
+    Duration heartbeatInterval();
 }
