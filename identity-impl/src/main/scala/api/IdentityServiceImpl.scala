@@ -108,8 +108,11 @@ class IdentityServiceImpl(
   }
 
   def heartbeat(flow: Source[String, NotUsed]):Source[String, NotUsed] = {
-    flow.mapAsync(1) {
-      case "{\"msgType\":\"heartbeat\",\"payload\":\"ping\"}" => {
+    flow.map(s => {
+      val mapper = new ObjectMapper
+      mapper.readValue(s, classOf[JsonNode])
+    }).mapAsync(1) {
+      case n:JsonNode if(n.get("msgType").asText().equals("heartbeat")) => {
         logger.info("received ping")
         Future{
           val reply = "{\"msgType\":\"heartbeat\",\"payload\":\"pong\"}"
@@ -117,16 +120,21 @@ class IdentityServiceImpl(
           reply
         }
       }
-      case s:String if(s.contains("\"msgType\":\"echo\"")) => {
-        val mapper = new ObjectMapper
-        val jsonNode = mapper.readValue(s, classOf[JsonNode])
-        val payload = jsonNode.get("payload")
-        logger.info(s"received echo with payload: ${payload.asText()}: ${s}")
+      case n:JsonNode if(n.get("msgType").asText().equals("echo")) => {
+        val payload = n.get("payload").asText()
+        logger.info(s"received echo with payload: ${payload}")
         Future{
-          val reply = "{\"msgType\":\"echo\",\"payload\":\"echo of \'"+payload.asText()+"\'\"}"
+          val reply = "{\"msgType\":\"echo\",\"payload\":\"echo of '"+payload+"'\"}"
           logger.info("replied: "+reply)
           reply
         }
+      }
+      case n:JsonNode => {
+        Future("{\"msgType\":\"error\",\"payload\":\"received jsonNode of type "+n+"\"}")
+      }
+      case _ => {
+        logger.info("received something else")
+        Future("{\"msgType\":\"error\",\"payload\":\"MatchError\"}")
       }
     }
   }
