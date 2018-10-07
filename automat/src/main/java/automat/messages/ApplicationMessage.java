@@ -8,11 +8,11 @@ import java.util.Optional;
 public class ApplicationMessage extends WebSocketMessage {
 
 
-    public ApplicationMessage(WebSocketMessageType type) {
+    public ApplicationMessage(WebSocketMessage.WebSocketMessageType type) {
         super(type);
     }
 
-    public ApplicationMessage(WebSocketMessageType type, String payload) {
+    public ApplicationMessage(WebSocketMessage.WebSocketMessageType type, String payload) {
         super(type);
         setPayload(payload);
     }

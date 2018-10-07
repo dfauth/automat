@@ -19,7 +19,7 @@ val log4j_core = "org.apache.logging.log4j" % "log4j-core" % "2.11.0"
 val log4j_api_scala = "org.apache.logging.log4j" %% "log4j-api-scala" % "11.0"
 
 lazy val `lagom-jwt-auth` = (project in file("."))
-  .aggregate(`common`, `identity-api`, `identity-impl`)
+  .aggregate(`common`, `identity-api`, `identity-impl`, `automat`)
 
 lazy val `common` = (project in file("common"))
   .settings(
