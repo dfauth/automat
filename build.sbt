@@ -1,8 +1,8 @@
 import com.lightbend.lagom.sbt.LagomImport.lagomScaladslApi
 import sbt.Keys.libraryDependencies
 
-organization in ThisBuild := "lagom-jwt-auth"
-version in ThisBuild := "1.0-SNAPSHOT"
+organization in ThisBuild := "automat"
+version in ThisBuild := "0.1"
 
 // the Scala version that will be used for cross-compiled libraries
 scalaVersion in ThisBuild := "2.11.8"
