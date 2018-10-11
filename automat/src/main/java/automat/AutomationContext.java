@@ -29,6 +29,8 @@ public interface AutomationContext {
 
     AutomationContext environment(Environment env);
 
+    Response get(Resource r);
+
     <T> Response post(Resource resource, T bodyContent);
 
     Automat.RequestBuilder onRequest();

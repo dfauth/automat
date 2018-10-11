@@ -172,6 +172,7 @@ public class Automat implements AutomationContext {
         return RestAssured.given().filter(asFilter()).port(Environment.getEnvironment().port());
     }
 
+    @Override
     public Response get(Resource r) {
         return when().get(r.uri());
     }
