@@ -24,12 +24,13 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
+import static automat.Environment.DefaultEnvironment.getEnvironment;
+
 public class Automat implements AutomationContext {
 
     private static final Logger logger = LogManager.getLogger(Automat.class);
     private static final ThreadLocal<Automat> automats = ThreadLocal.withInitial(() -> new Automat());
 
-    private RequestSpecification req = RestAssured.given();
     private final RequestBuilder requestBuilder = new RequestBuilder(this);
     private final ResponseBuilder responseBuilder = new ResponseBuilder(this);
     private String authToken;
@@ -40,6 +41,8 @@ public class Automat implements AutomationContext {
     private Duration heartbeatInterval = Duration.of(5, ChronoUnit.SECONDS);
     private HeartbeatContext heartbeatContext = new HeartbeatContext(heartbeatInterval);
     private WebSocketTextEndpoint webSocketEndpoint;
+    private Consumer<RequestLogSpecification> requestLogger = r->{};
+    private Consumer<ResponseLogSpecification> responseLogger = r->{};
 
     public static AutomationContext automationContext() {
         return given();
@@ -54,7 +57,7 @@ public class Automat implements AutomationContext {
 
     public AutomationContext use(Environment environment) {
         this.environment = Optional.of(environment);
-        Environment.setEnvironment(environment);
+        Environment.DefaultEnvironment.setEnvironment(environment);
         return this;
     }
 
@@ -78,6 +81,20 @@ public class Automat implements AutomationContext {
     public WebSocketEndpoint webSocketEndpoint(Resource resource) {
         webSocketEndpoint = new WebSocketTextEndpoint(this, toUri("ws", resource));
         return webSocketEndpoint;
+    }
+
+    @Override
+    public AutomationContext logInstructions(Consumer<RequestLogSpecification> requestConsumer, Consumer<ResponseLogSpecification> responseConsumer) {
+        this.requestLogger = l -> {
+            requestConsumer.accept(l);
+            this.requestLogger = r->{}; // reset this consumer
+        };
+        this.responseLogger = l -> {
+            responseConsumer.accept(l);
+            this.responseLogger = r->{}; // reset this consumer
+        };
+
+        return this;
     }
 
     public AutomationContext environment(Environment environment) {
@@ -169,18 +186,25 @@ public class Automat implements AutomationContext {
     }
 
     public RequestSpecification when() {
-        return RestAssured.given().filter(asFilter()).port(Environment.getEnvironment().port());
+        RequestSpecification req = RestAssured.given();
+        requestLogger.accept(req.log());
+        return req.filter(asFilter());
     }
 
     @Override
     public Response get(Resource r) {
-        return when().get(r.uri());
+        return when().get(environment.orElse(Environment.DefaultEnvironment.getEnvironment()).toUri(r));
+    }
+
+    @Override
+    public Response get(Resource r, Object... pathElements) {
+        return when().get(environment.orElse(Environment.DefaultEnvironment.getEnvironment()).toUri(r.apply(pathElements)));
     }
 
     public <T> Response post(Resource r, T bodyContent) {
         try {
             ObjectMapper mapper = new ObjectMapper();
-            return when().body(mapper.writeValueAsString(bodyContent)).post(r.uri());
+            return when().body(mapper.writeValueAsString(bodyContent)).post(environment.orElse(Environment.DefaultEnvironment.getEnvironment()).toUri(r));
         } catch (JsonProcessingException e) {
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
@@ -196,7 +220,7 @@ public class Automat implements AutomationContext {
     }
 
     private Environment env() {
-        return this.environment.orElseGet(()->Environment.getEnvironment());
+        return this.environment.orElseGet(()-> getEnvironment());
     }
 
     public static abstract class NestedBuilder<T> {

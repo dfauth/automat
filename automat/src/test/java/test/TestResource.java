@@ -5,8 +5,6 @@ import automat.Resource;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.Optional;
-import java.util.function.Function;
 
 public enum TestResource implements Resource {
 
@@ -30,10 +28,4 @@ public enum TestResource implements Resource {
     public String uri() {
         return uri;
     }
-
-    @Override
-    public <A> String bodyContent(Function<A, Optional<String>> f) {
-        return null;
-    }
-
 }

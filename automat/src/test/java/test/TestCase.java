@@ -14,7 +14,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import static automat.Automat.given;
-import static automat.Environment.LOCAL;
+import static test.TestEnvironment.LOCAL;
 import static automat.WebSocketMessage.WebSocketMessageType.ECHO;
 import static automat.WebSocketMessage.WebSocketMessageType.KNOWN;
 import static org.hamcrest.Matchers.is;
@@ -38,7 +38,7 @@ public class TestCase {
                 username(WATCHERBGYPSY.username()).
                 password(WATCHERBGYPSY.password());
 
-        given().
+        given().logInstructions(l -> l.all(), l -> l.all()).
 
                 post(REGISTRATION, user).
 

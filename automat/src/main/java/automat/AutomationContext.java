@@ -1,6 +1,8 @@
 package automat;
 
 import io.restassured.response.Response;
+import io.restassured.specification.RequestLogSpecification;
+import io.restassured.specification.ResponseLogSpecification;
 
 import java.net.URI;
 import java.time.Duration;
@@ -31,6 +33,8 @@ public interface AutomationContext {
 
     Response get(Resource r);
 
+    Response get(Resource r, Object... pathElements);
+
     <T> Response post(Resource resource, T bodyContent);
 
     Automat.RequestBuilder onRequest();
@@ -56,4 +60,14 @@ public interface AutomationContext {
     AutomationContext async(WebSocketMessage message);
 
     WebSocketEndpoint webSocketEndpoint(Resource resource);
+
+    default AutomationContext requestLogInstruction(Consumer<RequestLogSpecification> requestConsumer) {
+        return logInstructions(requestConsumer, r->{});
+    }
+
+    default AutomationContext responseLogInstruction(Consumer<ResponseLogSpecification> responseConsumer) {
+        return logInstructions(r->{}, responseConsumer);
+    }
+
+    AutomationContext logInstructions(Consumer<RequestLogSpecification> requestConsumer, Consumer<ResponseLogSpecification> responseConsumer);
 }
