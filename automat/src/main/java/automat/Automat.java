@@ -188,6 +188,7 @@ public class Automat implements AutomationContext {
     public RequestSpecification when() {
         RequestSpecification req = RestAssured.given();
         requestLogger.accept(req.log());
+        responseLogger.accept(req.response().log());
         return req.filter(asFilter());
     }
 
