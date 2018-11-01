@@ -258,22 +258,22 @@ public class Automat implements AutomationContext {
         }
     }
 
-    public static class ResponseBuilder extends NestedBuilder<MapBuilder<Integer, Function<FilterableRequestSpecification, Response>>> {
+    public static class ResponseBuilder extends NestedBuilder<MapBuilder<Integer, Function<RequestSpecification, Response>>> {
 
-        private MapBuilder<Integer, Function<FilterableRequestSpecification, Response>> mapBuilder;
+        private MapBuilder<Integer, Function<RequestSpecification, Response>> mapBuilder;
 
         public ResponseBuilder(Automat parent) {
             super(parent);
         }
 
         @Override
-        protected void onApply(MapBuilder<Integer, Function<FilterableRequestSpecification, Response>> mapBuilder) {
+        protected void onApply(MapBuilder<Integer, Function<RequestSpecification, Response>> mapBuilder) {
             this.mapBuilder = mapBuilder;
         }
 
-        public Map<Integer, Function<FilterableRequestSpecification, Response>> build() {
-            Map<Integer, Function<FilterableRequestSpecification, Response>> newMap = new HashMap<>();
-            Map<Integer, Function<FilterableRequestSpecification, Response>> map = Optional.ofNullable(mapBuilder).map(m -> m.build()).orElse(Collections.emptyMap());
+        public Map<Integer, Function<RequestSpecification, Response>> build() {
+            Map<Integer, Function<RequestSpecification, Response>> newMap = new HashMap<>();
+            Map<Integer, Function<RequestSpecification, Response>> map = Optional.ofNullable(mapBuilder).map(m -> m.build()).orElse(Collections.emptyMap());
             // transform
             map.entrySet().stream().forEach(e -> newMap.put(e.getKey(), e.getValue()));
             return newMap;
@@ -330,9 +330,9 @@ public class Automat implements AutomationContext {
     private class RestAssuredFilter implements Filter {
 
         private final UnaryOperator<FilterableRequestSpecification> preHandler;
-        private final Map<Integer, Function<FilterableRequestSpecification, Response>> postHandlers;
+        private final Map<Integer, Function<RequestSpecification, Response>> postHandlers;
 
-        public RestAssuredFilter(UnaryOperator<FilterableRequestSpecification> preHandler, Map<Integer, Function<FilterableRequestSpecification, Response>> postHandlers) {
+        public RestAssuredFilter(UnaryOperator<FilterableRequestSpecification> preHandler, Map<Integer, Function<RequestSpecification, Response>> postHandlers) {
             this.preHandler = preHandler;
             this.postHandlers = postHandlers;
         }
@@ -341,7 +341,7 @@ public class Automat implements AutomationContext {
             return this.preHandler.apply(requestSpec);
         }
 
-        private Response postHandle(FilterableRequestSpecification requestSpec, Response response) {
+        private Response postHandle(RequestSpecification requestSpec, Response response) {
             QueryableRequestSpecification q = SpecificationQuerier.query(requestSpec);
             Method.Replayer replayer = Method.valueOf(q.getMethod()).replayer(q.getURI());
             logger.info("response: "+response.statusCode());
@@ -350,7 +350,7 @@ public class Automat implements AutomationContext {
                         return f.andThen(r -> {
                             logger.info("replay original request: " + requestSpec);
                             return replayer.replay(requestSpec);
-                        }).apply(requestSpec);
+                        }).apply(RestAssured.given());
                     }).orElseGet(() ->response);
         }
 

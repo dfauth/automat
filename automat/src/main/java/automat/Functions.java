@@ -9,6 +9,7 @@ import io.restassured.specification.FilterableRequestSpecification;
 import io.restassured.specification.RequestSpecification;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.hamcrest.Matchers;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -17,7 +18,10 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.*;
-import java.util.function.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -32,7 +36,6 @@ public class Functions {
 
     public static UnaryOperator<FilterableRequestSpecification> authHandler = r -> {
         AutomationContext ctx = given();
-        logger.info("authHandler");
         ctx.authToken().<Void>map(t -> {
             r.header("Authorization", "Bearer "+t);
             return null;
@@ -67,8 +70,10 @@ public class Functions {
         return r -> {
             RequestSpecification tmp = r.contentType(ContentType.JSON).body(IdentityBean.of(ctx.identity()));
             Response res = tmp.log().all().post(ctx.toUri(resource));
-            logger.info("loginHandler response statusCode: "+res.statusCode());
-            r.then().statusCode(200);
+            res.then()
+                    .statusCode(200)
+                    .body("authToken", Matchers.notNullValue())
+                    .body("refreshToken", Matchers.notNullValue());
             return res;
         };
     }
@@ -201,6 +206,15 @@ public class Functions {
             c.accept(t);
             return null;
         };
+    }
+
+    public static <T> Class<?> toArrayClass(Class<T> c) {
+        try {
+            return Class.forName("["+c.getName()+";");
+        } catch (ClassNotFoundException e) {
+            logger.error(e.getMessage(), e);
+            throw new RuntimeException(e);
+        }
     }
 
 }
