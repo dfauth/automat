@@ -3,6 +3,7 @@ package automat;
 import automat.events.MessageEvent;
 import automat.events.OpenEvent;
 import automat.messages.HeartbeatMessage;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import io.restassured.specification.FilterableRequestSpecification;
@@ -11,12 +12,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.hamcrest.Matchers;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.Optional;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -208,9 +208,23 @@ public class Functions {
         };
     }
 
+    public static Function<Response,InputStream> toStream = r -> r.asInputStream();
+
+    public static <T> Function<Response, List<T>> asListOf(Class<T> cls) {
+        return toStream.andThen(
+                (InputStream s) -> {
+            try {
+                return Arrays.asList((T[])new ObjectMapper().readValue(s, toArrayClass(cls)));
+            } catch (IOException e) {
+                logger.error(e.getMessage(), e);
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
     public static <T> Class<?> toArrayClass(Class<T> c) {
         try {
-            return Class.forName("["+c.getName()+";");
+            return Class.forName("[L"+c.getName()+";");
         } catch (ClassNotFoundException e) {
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
