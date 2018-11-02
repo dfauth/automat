@@ -27,7 +27,9 @@ class TestSpec extends FlatSpec with Matchers with Logging {
   "Json serialization" should "work" in {
 
     given.identity(WATCHERBGYPSY).
-      onRequest()(authHandler).onResponse().apply(forHttpCode(403).use(loginHandler(AUTH).andThen(storeToken))).
+      onRequest()(authHandler).onResponse().apply(
+      forHttpCode(403).use(loginHandler(AUTH).andThen(storeToken))
+    ).
 
     get(IDENTITY).
 

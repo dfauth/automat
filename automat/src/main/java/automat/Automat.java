@@ -291,28 +291,28 @@ public class Automat implements AutomationContext {
 
         private final Integer code;
 
-        protected HttpCodeKey(Map<Integer, Function<FilterableRequestSpecification, Response>> map, Integer code) {
+        protected HttpCodeKey(Map<Integer, Function<RequestSpecification, Response>> map, Integer code) {
             super(map);
             this.code = code;
         }
 
-        public FilterFunctionValue use(Function<FilterableRequestSpecification, Response> f) {
+        public FilterFunctionValue use(Function<RequestSpecification, Response> f) {
             map.put(code, f);
             return new FilterFunctionValue(map, f);
         }
 
     }
 
-    public static class FilterFunctionValue implements MapBuilder<Integer,Function<FilterableRequestSpecification,Response>> {
+    public static class FilterFunctionValue implements MapBuilder<Integer,Function<RequestSpecification,Response>> {
 
-        protected final Map<Integer, Function<FilterableRequestSpecification, Response>> map;
-        private Function<FilterableRequestSpecification, Response> f;
+        protected final Map<Integer, Function<RequestSpecification, Response>> map;
+        private Function<RequestSpecification, Response> f;
 
-        protected FilterFunctionValue(Map<Integer, Function<FilterableRequestSpecification, Response>> map) {
+        protected FilterFunctionValue(Map<Integer, Function<RequestSpecification, Response>> map) {
             this.map = map;
         }
 
-        protected FilterFunctionValue(Map<Integer, Function<FilterableRequestSpecification, Response>> map, Function<FilterableRequestSpecification, Response> f) {
+        protected FilterFunctionValue(Map<Integer, Function<RequestSpecification, Response>> map, Function<RequestSpecification, Response> f) {
             this(map);
             this.f = f;
         }
@@ -322,7 +322,7 @@ public class Automat implements AutomationContext {
         }
 
         @Override
-        public Map<Integer, Function<FilterableRequestSpecification, Response>> build() {
+        public Map<Integer, Function<RequestSpecification, Response>> build() {
             return map;
         }
     }

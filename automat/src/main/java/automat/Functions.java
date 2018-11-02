@@ -65,7 +65,7 @@ public class Functions {
         return r;
     };
 
-    public static Function<FilterableRequestSpecification, Response> loginHandler(Resource resource) {
+    public static Function<RequestSpecification, Response> loginHandler(Resource resource) {
         AutomationContext ctx = given();
         return r -> {
             RequestSpecification tmp = r.contentType(ContentType.JSON).body(IdentityBean.of(ctx.identity()));
